@@ -6,11 +6,9 @@ const playSet = new Set<string>();
 let processing = false;
 let consecutiveFailures = 0;
 let pausedUntil = 0;
-let quotaBlocked = false;
 
-const MAX_FAILURES = 3;
-const PAUSE_MS = 20_000;
-const QUOTA_PAUSE_MS = 10 * 60_000;
+const MAX_FAILURES = 5; // More lenient since Edge TTS is reliable
+const PAUSE_MS = 10_000; // Shorter pause — Edge TTS recovers quickly
 const LOG = true;
 
 function log(...args: unknown[]) {
@@ -25,10 +23,8 @@ export function isRemoteAvailable() {
 }
 
 export function isQuotaBlocked() {
-  if (quotaBlocked && Date.now() >= pausedUntil) {
-    quotaBlocked = false;
-  }
-  return quotaBlocked;
+  // Edge TTS has no quota limits — always false
+  return false;
 }
 
 export function isRemoteSpeaking() {
@@ -70,14 +66,7 @@ async function pump() {
       } catch (err) {
         consecutiveFailures += 1;
         const msg = err instanceof Error ? err.message : String(err);
-        const quota = /QUOTA|429/i.test(msg);
         log("FAIL", `"${text.slice(0, 50)}" (${msg}) — failure ${consecutiveFailures}/${MAX_FAILURES}`);
-        if (quota) {
-          quotaBlocked = true;
-          pausedUntil = Date.now() + QUOTA_PAUSE_MS;
-          log("QUOTA EXHAUSTED — pausing cloud voice for", QUOTA_PAUSE_MS / 60000, "min");
-          break;
-        }
         if (consecutiveFailures >= MAX_FAILURES) {
           pausedUntil = Date.now() + PAUSE_MS;
           log("pausing voice for", PAUSE_MS / 1000, "s after", consecutiveFailures, "consecutive failures");
