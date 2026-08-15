@@ -9,7 +9,7 @@ import {
 } from "@/lib/speech";
 
 /**
- * Voice system — NO external API key needed.
+ * Voice system - NO external API key needed.
  *
  * Strategy 1: Browser speechSynthesis (if system has voices)
  * Strategy 2: Our /api/tts route which proxies free TTS (no CORS issues)
@@ -28,10 +28,10 @@ export function hasLocalVoice() {
 }
 
 /**
- * Split text into chunks of max ~190 chars for the TTS API.
+ * Split text into chunks of max ~500 chars for the TTS API.
  * Splits on sentence boundaries.
  */
-function chunkText(text: string, maxLen = 190): string[] {
+function chunkText(text: string, maxLen = 500): string[] {
   if (text.length <= maxLen) return [text];
   const chunks: string[] = [];
   let remaining = text;
@@ -54,7 +54,7 @@ function chunkText(text: string, maxLen = 190): string[] {
  * Play text using our /api/tts proxy route (avoids CORS).
  */
 async function speakViaProxy(text: string): Promise<void> {
-  const chunks = chunkText(text, 190);
+  const chunks = chunkText(text, 500);
   for (const chunk of chunks) {
     if (!isSpeechEnabled() || !speaking) break;
     try {
@@ -88,11 +88,11 @@ function playAudioUrl(url: string): Promise<void> {
     };
     audio.onerror = () => {
       audioElement = null;
-      resolve(); // Don't reject — just move on silently
+      resolve(); // Don't reject - just move on silently
     };
     audio.play().catch(() => {
       audioElement = null;
-      resolve(); // Don't reject — just move on silently
+      resolve(); // Don't reject - just move on silently
     });
   });
 }
@@ -117,13 +117,16 @@ export function say(text: string): Promise<void> {
   // Strategy 1: Browser speechSynthesis (if voices available)
   if (hasLocalVoice()) {
     log("local voice", `"${text.slice(0, 50)}"`);
-    return speakLocalAwait(text);
+    return speakLocalAwait(text).catch((err) => {
+      log("local voice failed, trying proxy:", err instanceof Error ? err.message : err);
+      return speakViaProxy(text);
+    });
   }
 
-  // Strategy 2: Our proxy TTS route (free, no CORS, no key)
+  // Strategy 2: Our proxy TTS route (Groq Orpheus -> Google Translate fallback)
   log("proxy tts", `"${text.slice(0, 50)}"`);
   return speakViaProxy(text).catch((err) => {
-    log("proxy tts failed:", err instanceof Error ? err.message : err);
+    log("all TTS strategies failed:", err instanceof Error ? err.message : err);
   });
 }
 
