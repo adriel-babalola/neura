@@ -1,79 +1,106 @@
-# Neura.
+# Neura
 
-**An adaptive Socratic AI tutor for kids 6–12.** Neura learns who your child is — their
-interests, how they learn, when they get stuck — then teaches through chalkboards,
-conversations, and stories they actually love.
+An adaptive AI tutor that teaches children (ages 8-12) through interactive chalkboard lessons, Socratic questioning, and personalized storytelling.
 
-Built for a hackathon demo. Inspired by The Primer (Y Combinator RFS). **No emojis, no
-vibe-coded UI — a minimal, professional product surface.**
+## What it does
 
----
+Parents describe what their child is struggling with. Neura generates a personalized lesson that:
 
-## Highlights
+- Breaks concepts into step-by-step scenes on an animated chalkboard
+- Uses the child's interests to make abstract ideas concrete
+- Asks questions at natural pause points (not quizzes, conversations)
+- Shows common mistakes and why they happen
+- Adapts language complexity to the child's age
 
-- **Adaptive lessons on demand** — a parent names a struggle (e.g. "can't add fractions") and
-  Gemini (`gemini-2.5-flash`) writes a personalized lesson around the child's age, interests,
-  and learning style.
-- **Two modes** — a self-writing **chalkboard** (Rough.js + KaTeX math) or a **story** starring
-  the child's favorite interest.
-- **Socratic, never preachy** — lessons pause at questions; two gentle hint stages; loose
-  answer matching.
-- **Child-safe voice** — Web Speech API announces questions and feedback in a calm, slowed
-  voice (works on iPad Safari); toggle in the lesson header.
-- **Delight without distraction** — correct answers get confetti; chalk-dust ambient
-  animation on the board; a pulsing ring signals when a question is waiting.
-- **Landscape dashboard** for kids — board on the left, question rail on the right. Zero
-  vertical scrolling on iPad.
-- **Safe by design** — structured JSON schema generation, strict child-safety system prompt,
-  no open-ended chatbot.
+## Tech Stack
 
-## Quickstart
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS 4
+- **Math rendering**: KaTeX (LaTeX)
+- **Animations**: Motion (Framer Motion)
+- **AI**: OpenRouter API (free tier, Llama 3.3 70B)
+- **Voice**: Server-proxied TTS (no client-side API keys)
+- **Deployment**: Vercel
+
+## Getting Started
 
 ```bash
+git clone https://github.com/adriel-babalola/neura.git
+cd neura
 npm install
-
-# configure Gemini (required for lesson generation)
-echo "GEMINI_API_KEY=your_key_here" > .env.local
-
-npm run dev        # http://localhost:3000
 ```
 
-Then open the app, **Get started → Sign in** (simulated — choose "I'm a parent", type any
-name), complete the 4-step onboarding, and build a lesson.
+Create a `.env.local` file:
 
-> Sign-in is **simulated** on purpose: no backend database. All state lives in
-> `localStorage` (`neura:profile`, `neura:lesson`).
+```env
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+```
 
-## Testing
+Get a free key at [openrouter.ai/keys](https://openrouter.ai/keys) (no credit card required).
 
 ```bash
-npx playwright install chromium-headless-shell   # once
-node tests/full-flow.mjs                         # 25 checks against :3000
+npm run dev
 ```
 
-The suite drives the real product: onboarding, a real Gemini lesson, chalkboard/KaTeX/voice
-surfaces, solving every question, the Socratic wrong-answer path, story mode, hydration
-safety, and a zero-client-error guarantee. Screenshots land in `.dev-screenshots/`.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Tech stack
+## Project Structure
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · motion · lucide-react ·
-KaTeX + Rough.js · canvas-confetti · Web Speech API · Playwright
+```
+src/
+  app/
+    page.tsx              # Landing page
+    signin/page.tsx       # Role selection (parent/student)
+    onboarding/page.tsx   # Child profile setup
+    parent/page.tsx       # Parent dashboard, lesson creation
+    child/latest/page.tsx # Student lesson view
+    api/
+      generate-lesson/    # AI lesson generation endpoint
+      tts/                # Text-to-speech proxy (free, no key)
+  components/
+    blackboard.tsx        # Animated chalkboard with KaTeX math
+    lesson-view.tsx       # Full lesson player with questions
+    chalk-dust.tsx        # Particle effect overlay
+  lib/
+    gemini.ts             # AI lesson generation (OpenRouter/Groq)
+    say.ts                # Voice orchestrator
+    speech.ts             # Browser speechSynthesis wrapper
+    tts.ts                # Remote TTS client
+    types.ts              # TypeScript interfaces
+    fallback.ts           # Offline fallback lesson
+    history.ts            # Lesson history (localStorage)
+```
 
-See `.kiro/` for full agent-readable docs (product, tech, structure, patterns, specs).
+## How Lessons Work
 
-## Routes
+1. Parent fills in subject, struggle, and context
+2. AI generates a structured lesson (5-8 scenes, 4-5 questions)
+3. Each scene appears on an animated chalkboard with:
+   - Text lines (with chalk styling and color coding)
+   - LaTeX math (rendered by KaTeX)
+   - Reading-hold timers so content stays visible
+4. Questions pause the lesson and prompt the child
+5. Hints guide reasoning without giving answers
+6. Confetti and encouragement on correct answers
 
-| Route | Purpose |
-| --- | --- |
-| `/` | Landing page |
-| `/signin` | Simulated sign-in (role select) |
-| `/onboarding` | 4-step parent/child profile wizard |
-| `/parent` | Build-a-lesson dashboard |
-| `/child/latest` | The lesson player (board/story) |
-| `POST /api/generate-lesson` | Gemini lesson generation |
+## Environment Variables
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `OPENROUTER_API_KEY` | Yes | AI lesson generation (free at openrouter.ai) |
+| `GROQ_API_KEY` | Optional | Backup AI provider |
+
+Voice/TTS requires no API key. It uses a server-side proxy.
+
+## Development
+
+```bash
+npm run dev      # Start dev server
+npm run build    # Production build
+npm run lint     # ESLint
+```
 
 ## License
 
-Demo project — all yours.
-# neura
+MIT

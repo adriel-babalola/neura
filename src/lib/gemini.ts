@@ -14,23 +14,9 @@ import type { Lesson, LessonMode, LessonRequest } from "@/lib/types";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-// Free model on OpenRouter — Llama 3.3 70B free variant
-const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+// Free model on OpenRouter — use the free router for best availability
+const OPENROUTER_MODEL = "openrouter/auto";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
-
-function getConfig(): { url: string; model: string; apiKey: string } | null {
-  // Prefer OpenRouter (free, no billing)
-  const orKey = process.env.OPENROUTER_API_KEY;
-  if (orKey && orKey.length > 10 && !orKey.includes("PASTE_")) {
-    return { url: OPENROUTER_URL, model: OPENROUTER_MODEL, apiKey: orKey };
-  }
-  // Fallback to Groq
-  const groqKey = process.env.GROQ_API_KEY;
-  if (groqKey && groqKey.length > 10 && !groqKey.includes("PASTE_")) {
-    return { url: GROQ_URL, model: GROQ_MODEL, apiKey: groqKey };
-  }
-  return null;
-}
 
 const SYS_PROMPT = `You are Neura, a world-class Socratic AI tutor for children aged 8-12. Turn abstract concepts into vivid adventures. Never give direct answers. Guide children to discover understanding themselves.
 
@@ -63,67 +49,105 @@ Generate 5-8 scenes, 4-5 questions. JSON only.`;
 }
 
 export async function generateLesson(req: LessonRequest): Promise<Lesson> {
-  const config = getConfig();
-  if (!config) {
+  // Try OpenRouter first, then Groq as fallback
+  const providers = getProviders();
+  if (providers.length === 0) {
     throw new Error("NO_KEY");
   }
 
+  let lastError = "";
+  for (const config of providers) {
+    try {
+      const result = await callProvider(config, req);
+      return result;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      console.error(`[generate-lesson] ${config.url} failed: ${lastError}`);
+      // Try next provider
+    }
+  }
+
+  throw new Error(lastError || "ALL_PROVIDERS_FAILED");
+}
+
+function getProviders(): { url: string; model: string; apiKey: string }[] {
+  const providers: { url: string; model: string; apiKey: string }[] = [];
+
+  const orKey = process.env.OPENROUTER_API_KEY;
+  if (orKey && orKey.length > 10 && !orKey.includes("PASTE_")) {
+    providers.push({ url: OPENROUTER_URL, model: OPENROUTER_MODEL, apiKey: orKey });
+  }
+
+  const groqKey = process.env.GROQ_API_KEY;
+  if (groqKey && groqKey.length > 10 && !groqKey.includes("PASTE_")) {
+    providers.push({ url: GROQ_URL, model: GROQ_MODEL, apiKey: groqKey });
+  }
+
+  return providers;
+}
+
+async function callProvider(
+  config: { url: string; model: string; apiKey: string },
+  req: LessonRequest
+): Promise<Lesson> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${config.apiKey}`,
     "Content-Type": "application/json",
   };
 
-  // OpenRouter requires these headers
   if (config.url === OPENROUTER_URL) {
     headers["HTTP-Referer"] = "https://neuraai-liard.vercel.app";
     headers["X-Title"] = "Neura AI Tutor";
   }
 
+  const body: Record<string, unknown> = {
+    model: config.model,
+    messages: [
+      { role: "system", content: SYS_PROMPT },
+      { role: "user", content: buildUserPrompt(req) },
+    ],
+    temperature: 0.85,
+    max_tokens: 8192,
+  };
+
+  if (config.url === GROQ_URL) {
+    body.response_format = { type: "json_object" };
+  }
+
   const res = await fetch(config.url, {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      model: config.model,
-      messages: [
-        { role: "system", content: SYS_PROMPT },
-        { role: "user", content: buildUserPrompt(req) },
-      ],
-      temperature: 0.85,
-      max_tokens: 8192,
-      response_format: { type: "json_object" },
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    if (res.status === 429) throw new Error("RATE_LIMITED");
-    throw new Error(`API_${res.status}: ${detail.slice(0, 200)}`);
+    throw new Error(`${res.status}: ${detail.slice(0, 300)}`);
   }
 
   const data = await res.json();
   const raw = data?.choices?.[0]?.message?.content;
   if (!raw) throw new Error("EMPTY_RESPONSE");
 
-  try {
-    const parsed = JSON.parse(raw) as Lesson;
-    const scenesOk =
-      parsed.scenes?.length > 0 &&
-      parsed.scenes.every(
-        (s) =>
-          Array.isArray(s.lines) &&
-          s.lines.length > 0 &&
-          s.lines.every(
-            (l) =>
-              (l.kind === "text" && l.text?.trim()) ||
-              (l.kind === "math" && l.latex?.trim()) ||
-              l.kind === "divider"
-          )
-      );
-    if (!parsed.questions?.length || !scenesOk) {
-      throw new Error("MALFORMED");
-    }
-    return parsed;
-  } catch {
+  // Strip markdown code fences if present
+  const cleaned = raw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+
+  const parsed = JSON.parse(cleaned) as Lesson;
+  const scenesOk =
+    parsed.scenes?.length > 0 &&
+    parsed.scenes.every(
+      (s) =>
+        Array.isArray(s.lines) &&
+        s.lines.length > 0 &&
+        s.lines.every(
+          (l) =>
+            (l.kind === "text" && l.text?.trim()) ||
+            (l.kind === "math" && l.latex?.trim()) ||
+            l.kind === "divider"
+        )
+    );
+  if (!parsed.questions?.length || !scenesOk) {
     throw new Error("MALFORMED");
   }
+  return parsed;
 }

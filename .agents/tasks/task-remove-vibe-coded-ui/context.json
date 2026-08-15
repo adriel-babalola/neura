@@ -1,0 +1,25 @@
+{
+  "project_type": "Next.js 16.3.1 App Router with React 19, Tailwind CSS 4",
+  "language": "TypeScript/TSX",
+  "build_system": "npm scripts (next build), no npm install available in sandbox",
+  "test_framework": "Playwright (node tests/full-flow.mjs) - requires running dev server + Gemini API key",
+  "build_command": "npx next build",
+  "test_command": "Cannot run full Playwright tests (requires dev server + API key). Use TypeScript compilation check: npx tsc --noEmit",
+  "verification_instructions": "Run npx tsc --noEmit to verify TypeScript compilation succeeds with no errors.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "node_modules already installed. No npm install needed or possible (INTEGRATIONS_ONLY network).",
+  "environment_constraints": "INTEGRATIONS_ONLY network - no npm install, no external fetches. Only pre-installed dependencies and GitHub access. lucide-react is already installed. Cannot add new icon libraries.",
+  "contribution_requirements": "README says: No emojis, no vibe-coded UI, a minimal professional product surface. AGENTS.md references Next.js 16 breaking changes - check node_modules/next/dist/docs/ if needed.",
+  "key_patterns": "Components use lucide-react icons exclusively. Shared UI components in src/components/ui.tsx (Button, Card, Input, Textarea, Logo, Field, Badge). CSS variables for theming in globals.css. motion/react for animations.",
+  "relevant_files": [
+    "src/app/page.tsx",
+    "src/app/signin/page.tsx",
+    "src/app/onboarding/page.tsx",
+    "src/app/parent/page.tsx",
+    "src/components/ui.tsx",
+    "src/components/insights-panel.tsx",
+    "src/components/lesson-view.tsx",
+    "src/app/globals.css"
+  ],
+  "directory_structure": "src/app/ has route pages (page.tsx, signin/, onboarding/, parent/, child/, api/). src/components/ has shared UI. src/lib/ has hooks and utilities."
+}
