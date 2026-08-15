@@ -292,7 +292,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
   }, []);
 
   useEffect(() => {
-    // No remote voice system — voice offline indicator not needed
+    // No remote voice system - voice offline indicator not needed
     setVoiceOffline(false);
   }, []);
 
@@ -421,7 +421,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
           {voiceStatus !== "ok" && (
             <span
               className="hidden items-center gap-1 text-[10px] text-chalk-dim lg:flex"
-              title="No system speech voice installed — using the cloud voice instead"
+              title="No system speech voice installed, using the cloud voice instead"
             >
               <Volume2 className="h-3 w-3" />
               Cloud voice
@@ -430,7 +430,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
           {voiceOffline && voiceStatus !== "ok" && (
             <span
               className="hidden items-center gap-1 text-[10px] font-medium text-warn lg:flex"
-              title="Cloud voice temporarily unavailable — the story still plays on screen"
+              title="Cloud voice temporarily unavailable, the story still plays on screen"
             >
               Voice unavailable
             </span>

@@ -7,6 +7,7 @@ import {
   Anchor,
   ArrowLeft,
   ArrowRight,
+  Baby,
   CheckCircle2,
   CloudOff,
   Compass,
@@ -14,6 +15,7 @@ import {
   Eye,
   Focus,
   Gamepad2,
+  GraduationCap,
   Hand,
   HeartCrack,
   PawPrint,
@@ -21,6 +23,8 @@ import {
   Rocket,
   Sparkles,
   Trophy,
+  User,
+  UserRound,
   Users,
   Zap,
 } from "lucide-react";
@@ -37,15 +41,15 @@ const STYLE_OPTIONS: { value: LearningStyle; label: string; icon: typeof Eye; de
   { value: "independent", label: "Alone", icon: Compass, desc: "Self-paced" },
 ];
 
-const INTEREST_OPTIONS: { label: string; icon: typeof Rocket; emoji: string }[] = [
-  { label: "Superheroes", icon: Sparkles, emoji: "🦸" },
-  { label: "Dinosaurs", icon: PawPrint, emoji: "🦕" },
-  { label: "Sports", icon: Trophy, emoji: "⚽" },
-  { label: "Space", icon: Rocket, emoji: "🚀" },
-  { label: "Animals", icon: PawPrint, emoji: "🐾" },
-  { label: "Games", icon: Gamepad2, emoji: "🎮" },
-  { label: "Pirates", icon: Anchor, emoji: "🏴‍☠️" },
-  { label: "Art", icon: Palette, emoji: "🎨" },
+const INTEREST_OPTIONS: { label: string; icon: typeof Rocket }[] = [
+  { label: "Superheroes", icon: Sparkles },
+  { label: "Dinosaurs", icon: PawPrint },
+  { label: "Sports", icon: Trophy },
+  { label: "Space", icon: Rocket },
+  { label: "Animals", icon: PawPrint },
+  { label: "Games", icon: Gamepad2 },
+  { label: "Pirates", icon: Anchor },
+  { label: "Art", icon: Palette },
 ];
 
 const FRUSTRATION_OPTIONS: { label: string; icon: typeof CloudOff; desc: string }[] = [
@@ -224,7 +228,7 @@ export default function OnboardingPage() {
                     Meet the student
                   </h1>
                   <p className="text-sm text-muted">
-                    This shapes how Neura speaks — a 7-year-old and a 12-year-old get very
+                    This shapes how Neura speaks, a 7-year-old and a 12-year-old get very
                     different lessons.
                   </p>
                 </div>
@@ -250,17 +254,17 @@ export default function OnboardingPage() {
 
                 {/* Age visual indicator */}
                 <div className="flex items-center gap-2 rounded-xl bg-surface2 p-3">
-                  <span className="text-sm">
-                    {age <= 7 ? "👶" : age <= 9 ? "🧒" : age <= 11 ? "🧑" : "🧑‍🎓"}
+                  <span className="text-sm text-accent">
+                    {age <= 7 ? <Baby className="h-4 w-4" /> : age <= 9 ? <User className="h-4 w-4" /> : age <= 11 ? <UserRound className="h-4 w-4" /> : <GraduationCap className="h-4 w-4" />}
                   </span>
                   <span className="text-xs text-muted">
                     {age <= 7
-                      ? "Early learner — simple language, lots of visuals"
+                      ? "Early learner, simple language, lots of visuals"
                       : age <= 9
-                      ? "Growing reader — balanced mix of text and fun"
+                      ? "Growing reader, balanced mix of text and fun"
                       : age <= 11
-                      ? "Confident student — more complex reasoning"
-                      : "Pre-teen — challenging material, less hand-holding"}
+                      ? "Confident student, more complex reasoning"
+                      : "Pre-teen, challenging material, less hand-holding"}
                   </span>
                 </div>
 
@@ -293,6 +297,7 @@ export default function OnboardingPage() {
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {INTEREST_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
                     const active = interest === opt.label;
                     return (
                       <button
@@ -304,7 +309,7 @@ export default function OnboardingPage() {
                             : "border-line bg-surface2 text-muted hover:border-accent/40"
                         }`}
                       >
-                        <span className="text-xl">{opt.emoji}</span>
+                        <Icon className="h-5 w-5 text-accent" />
                         {opt.label}
                       </button>
                     );

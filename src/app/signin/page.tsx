@@ -16,20 +16,18 @@ import {
 import { useProfile } from "@/lib/profile";
 import type { Role } from "@/lib/types";
 
-const ROLES: { role: Role; title: string; subtitle: string; icon: typeof UserRound; emoji: string }[] = [
+const ROLES: { role: Role; title: string; subtitle: string; icon: typeof UserRound }[] = [
   {
     role: "parent",
     title: "I'm a parent",
     subtitle: "Set up lessons and track progress",
     icon: UserRound,
-    emoji: "👨‍👩‍👧",
   },
   {
     role: "child",
     title: "I'm a student",
     subtitle: "Jump into my latest lesson",
     icon: GraduationCap,
-    emoji: "🎓",
   },
 ];
 
@@ -116,7 +114,6 @@ export default function SignInPage() {
                         : "border-line bg-surface2 hover:border-accent/40 hover:bg-surface-hover"
                     }`}
                   >
-                    <span className="text-2xl">{r.emoji}</span>
                     <span
                       className={`flex h-11 w-11 items-center justify-center rounded-xl ${
                         active ? "bg-accent text-white" : "bg-canvas text-muted"
