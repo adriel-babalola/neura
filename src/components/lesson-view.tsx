@@ -18,7 +18,6 @@ import Blackboard from "@/components/blackboard";
 import ChalkDust from "@/components/chalk-dust";
 import type { BoardLine, Lesson, Question } from "@/lib/types";
 import { hasLocalVoice, prewarm, say, stopSay } from "@/lib/say";
-import { isQuotaBlocked, isRemoteAvailable } from "@/lib/tts";
 import {
   isSpeechEnabled,
   onVoicesChanged,
@@ -293,10 +292,8 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
   }, []);
 
   useEffect(() => {
-    const tick = () => setVoiceOffline(isQuotaBlocked() || !isRemoteAvailable());
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    // No remote voice system — voice offline indicator not needed
+    setVoiceOffline(false);
   }, []);
 
   useEffect(() => {
@@ -460,7 +457,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
                 key={sceneIndex}
                 lines={sceneLines}
                 onLineDone={onLineDone}
-                autoAdvanceMs={sceneIndex === 0 ? 850 : 650}
+                autoAdvanceMs={sceneIndex === 0 ? 1200 : 1000}
               />
             )}
           </div>
