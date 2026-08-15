@@ -11,7 +11,7 @@ export function Logo({ className = "" }: { className?: string }) {
 
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "ghost" | "outline";
-  size?: "md" | "lg";
+  size?: "sm" | "md" | "lg";
 };
 
 export const Button = forwardRef<HTMLButtonElement, BtnProps>(function Button(
@@ -20,7 +20,7 @@ export const Button = forwardRef<HTMLButtonElement, BtnProps>(function Button(
 ) {
   const base =
     "inline-flex items-center justify-center gap-2 rounded-xl font-display font-medium transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer select-none";
-  const sizes = size === "lg" ? "min-h-12 px-6 text-[15px]" : "min-h-11 px-4 text-sm";
+  const sizes = size === "sm" ? "min-h-9 px-3 text-xs" : size === "lg" ? "min-h-12 px-6 text-[15px]" : "min-h-11 px-4 text-sm";
   const variants = {
     primary: "bg-accent text-white hover:brightness-[1.06] shadow-sm shadow-accent/20",
     outline: "border border-line text-ink hover:bg-surface2",
