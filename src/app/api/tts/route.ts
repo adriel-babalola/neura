@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { synthesize, CHILD_FRIENDLY_VOICES } from "@/lib/edge-tts";
+import { synthesize, VOICES } from "@/lib/groq-tts";
 
 const MAX_TEXT = 600;
 
@@ -13,7 +13,7 @@ function cacheKey(text: string, voice: string) {
 
 export async function POST(request: Request) {
   let text = "";
-  let voice = CHILD_FRIENDLY_VOICES.friendly;
+  let voice = VOICES.friendly;
 
   try {
     const body = await request.json();
@@ -45,14 +45,13 @@ export async function POST(request: Request) {
     );
   }
 
-  // Synthesize with Edge TTS
+  // Synthesize with Groq TTS
   const started = Date.now();
   try {
     const result = await synthesize(text, {
       voice,
-      rate: "-5%",   // Slightly slower for kids to follow
-      pitch: "+5Hz", // Friendly, slightly higher pitch
-      timeoutMs: 25000,
+      speed: 0.95,
+      responseFormat: "mp3",
     });
 
     // Cache the result
@@ -82,8 +81,11 @@ export async function POST(request: Request) {
     const message = err instanceof Error ? err.message : "UNKNOWN";
     console.error(`[tts] error ${Date.now() - started}ms: ${message} "${text.slice(0, 60)}"`);
 
-    if (message.includes("TIMEOUT")) {
-      return NextResponse.json({ error: "TTS_TIMEOUT" }, { status: 504 });
+    if (message.includes("NO_KEY")) {
+      return NextResponse.json({ error: "NO_KEY", detail: "Set GROQ_API_KEY in environment" }, { status: 503 });
+    }
+    if (message.includes("RATE_LIMITED")) {
+      return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
     }
     return NextResponse.json(
       { error: "TTS_FAILED", detail: message },

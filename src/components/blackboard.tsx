@@ -69,12 +69,21 @@ export default function Blackboard({
 
   useEffect(() => {
     if (visible >= total) {
-      onLineDone?.(true);
-      return;
+      // Hold the scene for reading time before advancing.
+      // Calculate based on text content: ~150 words/min reading speed for kids,
+      // plus extra time for math lines to be absorbed.
+      const textLength = lines
+        .filter((l) => l.kind === "text")
+        .reduce((sum, l) => sum + ((l as { text: string }).text?.length ?? 0), 0);
+      const mathCount = lines.filter((l) => l.kind === "math").length;
+      // ~60ms per character of text + 2s per math expression, minimum 3s hold
+      const readingHoldMs = Math.max(3000, textLength * 60 + mathCount * 2000);
+      const t = setTimeout(() => onLineDone?.(true), readingHoldMs);
+      return () => clearTimeout(t);
     }
     const t = setTimeout(() => setVisible((v) => v + 1), visible === 0 ? 350 : autoAdvanceMs);
     return () => clearTimeout(t);
-  }, [visible, total, onLineDone, autoAdvanceMs]);
+  }, [visible, total, lines, onLineDone, autoAdvanceMs]);
 
   const shown = lines.slice(0, visible);
   const hasMath = shown.some((l) => l.kind === "math");
