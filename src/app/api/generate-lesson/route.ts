@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { generateLesson } from "@/lib/gemini";
-import type { LessonRequest } from "@/lib/types";
+import type { LessonRequest, LessonDifficulty } from "@/lib/types";
 
 export async function POST(request: Request) {
   let body: LessonRequest;
   try {
-    body = (await request.json()) as LessonRequest;
+    const raw = await request.json();
+    body = {
+      child: raw.child,
+      subject: raw.subject,
+      struggle: raw.struggle,
+      context: raw.context,
+      mode: raw.mode,
+      difficulty: raw.difficulty as LessonDifficulty | undefined,
+    };
   } catch {
     return NextResponse.json({ error: "Malformed JSON body" }, { status: 400 });
   }
@@ -35,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: message, detail: "The AI could not generate a lesson. Please try again." },
+      { error: message, detail: "All AI providers failed to generate a lesson. Providers attempted: OpenRouter, Groq, Gemini. Please check your API keys or try again in a moment." },
       { status: 500 }
     );
   }

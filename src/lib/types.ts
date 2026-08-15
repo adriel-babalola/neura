@@ -46,6 +46,7 @@ export type LessonScene = {
 export type Lesson = {
   id: string;
   mode: LessonMode;
+  difficulty?: LessonDifficulty;
   title: string;
   subject: string;
   focus: string;
@@ -56,10 +57,13 @@ export type Lesson = {
   reflection: string;
 };
 
+export type LessonDifficulty = "beginner" | "intermediate" | "advanced";
+
 export type LessonRequest = {
   child: ChildProfile;
   subject: string;
   struggle: string;
   context: string;
   mode: LessonMode;
+  difficulty?: LessonDifficulty;
 };

@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix lesson generation 500 error by switching from unreliable openrouter/auto model to a specific free model (meta-llama/llama-3.3-70b-instruct:free), and improve error handling",
+  "status": "completed",
+  "steps": [
+    "In src/lib/gemini.ts, change the OPENROUTER_MODEL constant from 'openrouter/auto' to 'meta-llama/llama-3.3-70b-instruct:free' which is a specific free model on OpenRouter that does not require credits",
+    "Add GEMINI_URL and GEMINI_MODEL constants for Gemini API as third fallback provider",
+    "Add retry logic: if the first OpenRouter call fails with a 5xx or rate-limit, retry once with a 2-second delay before falling through to next provider",
+    "In the callProvider function, add response_format: { type: 'json_object' } for all providers (OpenRouter, Groq, Gemini) to improve JSON generation reliability",
+    "Add name field to provider objects for better error reporting",
+    "Track attempted providers and include them in the error message",
+    "In src/app/api/generate-lesson/route.ts, improve error messages: if all providers fail, return a more user-friendly detail message explaining which providers were attempted"
+  ],
+  "acceptance_criteria": [
+    "OPENROUTER_MODEL is set to 'meta-llama/llama-3.3-70b-instruct:free' (not 'openrouter/auto')",
+    "The provider chain tries OpenRouter, then Groq, then Gemini as fallbacks",
+    "Retry logic retries OpenRouter once on 5xx/429 errors with 2s delay",
+    "response_format: { type: 'json_object' } is set for all providers",
+    "Error message includes all attempted providers"
+  ],
+  "verification": [
+    "TypeScript syntax is valid (verified manually due to INTEGRATIONS_ONLY network mode)"
+  ],
+  "blocked_reason": null,
+  "findings": "Build and lint verification could not be run because node_modules are not fully installed in this sandbox (INTEGRATIONS_ONLY network mode). The code changes follow existing patterns exactly and are syntactically valid TypeScript."
+}
