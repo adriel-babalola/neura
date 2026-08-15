@@ -4,7 +4,7 @@ import {
   hasVoices,
   isSpeechEnabled,
   isSpeechSupported,
-  speak as speakLocal,
+  speakAwait as speakLocalAwait,
   stopSpeaking as stopLocal,
 } from "@/lib/speech";
 
@@ -105,11 +105,11 @@ function stopAudio() {
   }
 }
 
-export function say(text: string) {
-  if (!text.trim()) return;
+export function say(text: string): Promise<void> {
+  if (!text.trim()) return Promise.resolve();
   if (!isSpeechEnabled()) {
     log("skip (sound off)", `"${text.slice(0, 50)}"`);
-    return;
+    return Promise.resolve();
   }
 
   speaking = true;
@@ -117,13 +117,12 @@ export function say(text: string) {
   // Strategy 1: Browser speechSynthesis (if voices available)
   if (hasLocalVoice()) {
     log("local voice", `"${text.slice(0, 50)}"`);
-    speakLocal(text);
-    return;
+    return speakLocalAwait(text);
   }
 
   // Strategy 2: Our proxy TTS route (free, no CORS, no key)
   log("proxy tts", `"${text.slice(0, 50)}"`);
-  speakViaProxy(text).catch((err) => {
+  return speakViaProxy(text).catch((err) => {
     log("proxy tts failed:", err instanceof Error ? err.message : err);
   });
 }

@@ -16,10 +16,10 @@ const MODEL = "canopylabs/orpheus-v1-english";
 
 // Voices suitable for children's educational content
 export const VOICES = {
-  friendly: "leah",   // Warm female, good for teaching
-  narrator: "tara",   // Clear female narrator
-  male: "leo",        // Friendly male voice
-  energetic: "jess",  // Upbeat female
+  friendly: "hannah", // Warm female, good for teaching
+  narrator: "diana",  // Clear female narrator
+  male: "daniel",     // Friendly male voice
+  energetic: "autumn", // Upbeat female
 } as const;
 
 export type VoiceName = (typeof VOICES)[keyof typeof VOICES];

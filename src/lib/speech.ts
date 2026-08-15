@@ -115,6 +115,50 @@ export function speak(text: string, opts?: { interrupt?: boolean }) {
   setTimeout(() => synth.speak(utterance), 40);
 }
 
+export function speakAwait(text: string): Promise<void> {
+  return new Promise((resolve) => {
+    if (!isSpeechSupported() || !enabled) {
+      resolve();
+      return;
+    }
+    const synth = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 0.92;
+    utterance.pitch = 1.06;
+    utterance.volume = 1;
+    const voice = pickVoice();
+    if (voice) utterance.voice = voice;
+
+    let settled = false;
+    // Safety: never hang forever if the browser drops the utterance.
+    const safety = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve();
+      }
+    }, Math.max(4000, text.length * 120));
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(safety);
+      resolve();
+    };
+    utterance.onend = done;
+    utterance.onerror = done;
+
+    synth.cancel();
+    setTimeout(() => {
+      if (settled) return;
+      try {
+        synth.speak(utterance);
+      } catch {
+        done();
+      }
+    }, 40);
+  });
+}
+
 export function stopSpeaking() {
   if (!isSpeechSupported()) return;
   window.speechSynthesis.cancel();
