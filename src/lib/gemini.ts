@@ -5,10 +5,10 @@ import type { Lesson, LessonMode, LessonRequest } from "@/lib/types";
 /**
  * Lesson generation using OpenRouter (free models, no credit card).
  *
- * Uses the free router which auto-selects from available free models.
+ * Uses a specific free model for reliable free-tier usage.
  * Get a key at https://openrouter.ai/keys (no billing needed for free models).
  *
- * Fallback: If OPENROUTER_API_KEY is not set, uses GROQ_API_KEY with Groq.
+ * Fallback chain: OpenRouter -> Groq -> Gemini
  */
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -43,11 +43,15 @@ Each question: {id, sceneIndex (0-based int), prompt, hint, deeperHint, answer, 
 
 function buildUserPrompt(req: LessonRequest) {
   const c = req.child;
-  return `Lesson for ${c.name}, age ${c.age}, loves "${c.interest}".
+  let prompt = `Lesson for ${c.name}, age ${c.age}, loves "${c.interest}".
 Learning style: ${c.learningStyle}. Frustration: ${c.frustration || "not specified"}.
 Subject: ${req.subject}. Struggled with: ${req.struggle}. Context: ${req.context || "none"}.
-Mode: ${req.mode === "story" ? "STORY (all text)" : "BOARD (text + LaTeX math every scene)"}.
-Generate 5-8 scenes, 4-5 questions. JSON only.`;
+Mode: ${req.mode === "story" ? "STORY (all text)" : "BOARD (text + LaTeX math every scene)"}.`;
+  if (req.difficulty) {
+    prompt += `\nDifficulty level: ${req.difficulty}. Adjust complexity accordingly.`;
+  }
+  prompt += `\nGenerate 5-8 scenes, 4-5 questions. JSON only.`;
+  return prompt;
 }
 
 export async function generateLesson(req: LessonRequest): Promise<Lesson> {
