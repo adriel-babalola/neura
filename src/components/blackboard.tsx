@@ -75,7 +75,7 @@ export default function Blackboard({
         .filter((l) => l.kind === "text")
         .reduce((sum, l) => sum + ((l as { text: string }).text?.length ?? 0), 0);
       const mathCount = lines.filter((l) => l.kind === "math").length;
-      const holdMs = Math.max(3000, textLen * 60 + mathCount * 2000);
+      const holdMs = Math.max(5000, textLen * 80 + mathCount * 3000);
       const t = setTimeout(() => onLineDone?.(true), holdMs);
       return () => clearTimeout(t);
     }
