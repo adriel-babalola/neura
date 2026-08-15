@@ -66,7 +66,7 @@ body {
   transition: background-color 300ms ease, color 300ms ease;
 }
 
-/* Aurora glow behind hero / auth screens (light, warm wash) */
+/* ── Aurora glow behind hero / auth screens ── */
 .aurora-bg {
   position: absolute;
   top: 0;
@@ -84,14 +84,14 @@ body {
   opacity: 0.6;
 }
 
-/* Subtle top hairline gradient used on glass cards */
+/* ── Glass cards ── */
 .glass {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.45));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 
-/* Chalk dust texture for the blackboard */
+/* ── Chalkboard texture ── */
 .board-texture {
   position: relative;
 }
@@ -108,17 +108,17 @@ body {
   z-index: 1;
 }
 
-/* Chalk glow on text (child board only) */
+/* ── Chalk glow ── */
 .chalk-glow {
   text-shadow: 0 0 8px rgba(242, 240, 230, 0.18);
 }
 
-/* Progress bar smooth fill */
+/* ── Progress bar smooth fill ── */
 .progress-fill {
   transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Fade-in helper for onboarding steps */
+/* ── Fade-in for onboarding steps ── */
 .fade-step {
   animation: fadeStep 420ms ease both;
 }
@@ -127,7 +127,7 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Question arrival signal: soft ring around the card */
+/* ── Question ring signal ── */
 .question-alert {
   animation: questionRing 2.6s ease-out infinite;
 }
@@ -137,12 +137,115 @@ body {
   100% { box-shadow: 0 0 0 0 rgba(242, 197, 107, 0), 0 8px 30px -8px rgba(0, 0, 0, 0.25); }
 }
 
+/* ── Pulse glow for accent elements ── */
+.pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(210, 107, 74, 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(210, 107, 74, 0.15); }
+}
+
+/* ── Shimmer skeleton loading ── */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface2);
+  border-radius: 8px;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ── Slide up entrance ── */
+.slide-up {
+  animation: slideUp 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Stagger children animation delays ── */
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 60ms; }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(6) { animation-delay: 300ms; }
+
+/* ── Hover card lift effect ── */
+.card-hover {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -8px rgba(0, 0, 0, 0.1), 0 4px 10px -4px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Gradient text utility ── */
+.text-gradient {
+  background: linear-gradient(135deg, var(--ink) 0%, var(--muted) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Float animation ── */
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ── Testimonial scroll ── */
+.scroll-mask {
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+/* ── Selection ── */
 ::selection {
   background: var(--accent);
   color: #fff;
 }
 
+/* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .question-alert { animation: none; }
+  .pulse-glow { animation: none; }
+  .float { animation: none; }
+  .skeleton::after { animation: none; }
+}
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }
