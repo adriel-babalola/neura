@@ -129,7 +129,7 @@ export function say(text: string) {
 }
 
 export function prewarm(_texts: string[]) {
-  log("prewarm skipped");
+  log("prewarm skipped", `${_texts.length} texts`);
 }
 
 export function stopSay() {

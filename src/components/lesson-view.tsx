@@ -217,7 +217,6 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
   const [solvedIds, setSolvedIds] = useState<Set<string>>(new Set());
   const [soundOn, setSoundOn] = useState(true);
   const [voiceStatus, setVoiceStatus] = useState<"ok" | "no-voices" | "unsupported">("ok");
-  const [voiceOffline, setVoiceOffline] = useState(false);
   const announcedRef = useRef<string | null>(null);
   const lastSolvedSpeakRef = useRef(0);
   const narratedRef = useRef<number | null>(null);
@@ -289,11 +288,6 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
     const update = () => setVoiceStatus(speechStatus());
     update();
     return onVoicesChanged(update);
-  }, []);
-
-  useEffect(() => {
-    // No remote voice system - voice offline indicator not needed
-    setVoiceOffline(false);
   }, []);
 
   useEffect(() => {
@@ -427,7 +421,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
               Cloud voice
             </span>
           )}
-          {voiceOffline && voiceStatus !== "ok" && (
+          {voiceStatus !== "ok" && (
             <span
               className="hidden items-center gap-1 text-[10px] font-medium text-warn lg:flex"
               title="Cloud voice temporarily unavailable, the story still plays on screen"

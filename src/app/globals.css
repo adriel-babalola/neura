@@ -107,6 +107,10 @@ body {
   position: relative;
   z-index: 1;
 }
+.board-texture > [data-blackboard] {
+  position: absolute;
+  z-index: 0;
+}
 
 /* ── Chalk glow ── */
 .chalk-glow {
