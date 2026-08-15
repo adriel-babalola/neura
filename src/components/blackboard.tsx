@@ -82,7 +82,7 @@ export default function Blackboard({
   return (
     <div className="board-texture relative h-full w-full overflow-hidden rounded-xl bg-board">
       <ChalkFrame />
-      <div className="relative z-10 flex h-full flex-col justify-center gap-2 px-10 py-8">
+      <div className="relative z-10 flex h-full flex-col justify-start gap-2 overflow-y-auto px-10 py-8">
         {shown.map((line, i) => (
           <motion.div
             key={i}

@@ -448,7 +448,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[1fr_350px]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] md:grid-cols-[1fr_350px] md:grid-rows-[1fr]">
         <div className="relative min-h-0 overflow-hidden">
           <div className="board-texture absolute inset-0 bg-board" />
           <ChalkDust />
@@ -480,7 +480,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
           </AnimatePresence>
         </div>
 
-        <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto border-t border-line/30 bg-board p-4 md:border-l md:border-t-0 md:p-5">
+        <aside className="flex max-h-[40vh] min-h-0 flex-col gap-3 overflow-y-auto border-t border-line/30 bg-board p-4 md:max-h-none md:border-l md:border-t-0 md:p-5">
           <p className="flex items-center gap-1.5 font-display text-xs font-bold uppercase tracking-widest text-chalk-dim">
             {isPaused ? (
               <>

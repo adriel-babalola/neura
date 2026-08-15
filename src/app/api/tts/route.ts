@@ -12,7 +12,7 @@ let quotaBlockedUntil = 0;
 let quotaHitThisCall = false;
 
 function quotaError() {
-  return NextResponse.json({ error: "QUOTA_EXHAUSTED" }, { status: 200 });
+  return NextResponse.json({ error: "QUOTA_EXHAUSTED" }, { status: 429 });
 }
 
 function toWav(pcm: Buffer, sampleRate = 24000, channels = 1, bits = 16): Buffer {
