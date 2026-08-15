@@ -218,6 +218,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
   const [soundOn, setSoundOn] = useState(true);
   const [voiceStatus, setVoiceStatus] = useState<"ok" | "no-voices" | "unsupported">("ok");
   const [voiceOffline, setVoiceOffline] = useState(false);
+  const [sceneFinished, setSceneFinished] = useState(false);
   const announcedRef = useRef<string | null>(null);
   const lastSolvedSpeakRef = useRef(0);
   const narratedRef = useRef<number | null>(null);
@@ -244,13 +245,14 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
     [questions, sceneIndex, solvedIds]
   );
 
-  const isPaused = !!pendingQuestion;
+  const isPaused = !!pendingQuestion && sceneFinished;
 
   const onLineDone = useCallback(() => {
-    if (isPaused) return;
+    setSceneFinished(true);
+    if (pendingQuestion) return;
     if (sceneIndex >= lesson.scenes.length - 1) return;
     setSceneIndex((s) => s + 1);
-  }, [isPaused, sceneIndex, lesson.scenes.length]);
+  }, [pendingQuestion, sceneIndex, lesson.scenes.length]);
 
   const onSolved = useCallback(
     (qId: string) => {
@@ -267,6 +269,11 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
     },
     [solvedIds, questions, sceneIndex, lesson.scenes.length]
   );
+
+  // Reset sceneFinished when sceneIndex changes
+  useEffect(() => {
+    setSceneFinished(false);
+  }, [sceneIndex]);
 
   const progress =
     ((sceneIndex + (isPaused ? 0 : 1)) / Math.max(lesson.scenes.length, 1)) * 100;
@@ -339,11 +346,12 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
   }, [sceneIndex, sceneLines, soundOn]);
 
   useEffect(() => {
+    if (!sceneFinished) return;
     if (pendingQuestion && announcedRef.current !== pendingQuestion.id) {
       announcedRef.current = pendingQuestion.id;
       speakPrompt(pendingQuestion, true);
     }
-  }, [pendingQuestion, speakPrompt]);
+  }, [pendingQuestion, speakPrompt, sceneFinished]);
 
   const handleSolved = useCallback(
     (qId: string) => {
