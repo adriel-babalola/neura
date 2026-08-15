@@ -26,6 +26,47 @@ import {
   unlockSpeech,
 } from "@/lib/speech";
 
+/**
+ * Convert LaTeX math notation to child-friendly spoken text.
+ * Handles fractions, operators, and common commands.
+ */
+function latexToSpoken(latex: string): string {
+  let s = latex;
+
+  // \frac{a}{b} -> "a over b"
+  s = s.replace(/\\frac\{([^}]*)}\{([^}]*)}/g, "$1 over $2");
+
+  // \text{...} -> just the text content
+  s = s.replace(/\\text\{([^}]*)}/g, "$1");
+
+  // Operators
+  s = s.replace(/\\times/g, " times ");
+  s = s.replace(/\\cdot/g, " times ");
+  s = s.replace(/\\neq/g, " does not equal ");
+  s = s.replace(/\\div/g, " divided by ");
+  s = s.replace(/\\pm/g, " plus or minus ");
+  s = s.replace(/\\leq/g, " is less than or equal to ");
+  s = s.replace(/\\geq/g, " is greater than or equal to ");
+  s = s.replace(/\\lt/g, " is less than ");
+  s = s.replace(/\\gt/g, " is greater than ");
+  s = s.replace(/\\approx/g, " is approximately ");
+  s = s.replace(/\\quad/g, " ");
+  s = s.replace(/\+/g, " plus ");
+  s = s.replace(/-/g, " minus ");
+  s = s.replace(/=/g, " equals ");
+
+  // Strip remaining backslash commands (e.g. \sqrt, \left, \right)
+  s = s.replace(/\\[a-zA-Z]+/g, " ");
+
+  // Remove braces
+  s = s.replace(/[{}]/g, "");
+
+  // Collapse whitespace
+  s = s.replace(/\s+/g, " ").trim();
+
+  return s;
+}
+
 type Status = "idle" | "correct" | "wrong" | "revealed";
 
 const CONFETTI_COLORS = ["#F2C56B", "#F0A6A6", "#9CC5E8", "#A9D4B4", "#F2F0E6"];
@@ -94,7 +135,7 @@ function QuestionPanel({
       transition={{ duration: 0.25, ease: "easeOut" }}
       className="question-alert flex flex-col gap-4 rounded-2xl border border-accent/40 bg-surface p-5 shadow-[0_0_0_1px_rgba(242,197,107,0.15),0_8px_30px_-8px_rgba(0,0,0,0.25)]"
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 rounded-full bg-accent-dim px-2.5 py-1 font-display text-xs font-bold text-accent">
           <MessageCircleQuestion className="h-3.5 w-3.5" />
           Question {index + 1} of {total}
@@ -323,12 +364,16 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
     firstSceneRef.current = false;
     const t = setTimeout(() => {
       const text = sceneLines
-        .filter((l) => l.kind === "text" && l.text)
-        .map((l) => (l as Extract<BoardLine, { kind: "text" }>).text)
+        .filter((l) => l.kind !== "divider")
+        .map((l) => {
+          if (l.kind === "math") return latexToSpoken(l.latex);
+          return (l as Extract<BoardLine, { kind: "text" }>).text;
+        })
+        .filter((t) => t && t.trim())
         .join(". ")
-        .slice(0, 400);
+        .slice(0, 800);
       if (text.trim()) say(text);
-    }, isFirst ? 1400 : 250);
+    }, isFirst ? 2000 : 250);
     return () => clearTimeout(t);
   }, [sceneIndex, sceneLines, soundOn]);
 
@@ -414,7 +459,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
           </button>
           {voiceStatus !== "ok" && (
             <span
-              className="hidden items-center gap-1 text-[10px] text-chalk-dim lg:flex"
+              className="hidden items-center gap-1 text-[10px] text-chalk-dim xl:flex"
               title="No system speech voice installed, using the cloud voice instead"
             >
               <Volume2 className="h-3 w-3" />
@@ -423,7 +468,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
           )}
           {voiceStatus !== "ok" && (
             <span
-              className="hidden items-center gap-1 text-[10px] font-medium text-warn lg:flex"
+              className="hidden items-center gap-1 text-[10px] font-medium text-warn xl:flex"
               title="Cloud voice temporarily unavailable, the story still plays on screen"
             >
               Voice unavailable
@@ -434,7 +479,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
             className="flex cursor-pointer items-center gap-1.5 rounded-full border border-line/40 px-3 py-2 text-xs text-chalk-dim transition-colors hover:text-chalk"
           >
             <LayoutDashboard className="h-3.5 w-3.5" />
-            Parent view
+            <span className="hidden sm:inline">Parent view</span>
           </button>
         </div>
       </header>
@@ -451,7 +496,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
                 key={sceneIndex}
                 lines={sceneLines}
                 onLineDone={onLineDone}
-                autoAdvanceMs={sceneIndex === 0 ? 1800 : 1400}
+                autoAdvanceMs={sceneIndex === 0 ? 2200 : 1800}
               />
             )}
           </div>
@@ -471,7 +516,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
           </AnimatePresence>
         </div>
 
-        <aside className="flex max-h-[40vh] min-h-0 flex-col gap-3 overflow-y-auto border-t border-line/30 bg-board p-4 md:max-h-none md:border-l md:border-t-0 md:p-5">
+        <aside className="flex max-h-[50vh] min-h-0 flex-col gap-3 overflow-y-auto border-t border-line/30 bg-board p-4 md:max-h-none md:border-l md:border-t-0 md:p-5">
           <p className="flex items-center gap-1.5 font-display text-xs font-bold uppercase tracking-widest text-chalk-dim">
             {isPaused ? (
               <>

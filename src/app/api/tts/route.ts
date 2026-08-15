@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { synthesize as groqSynthesize } from "@/lib/groq-tts";
 
-const MAX_TEXT = 200;
+const MAX_TEXT = 1000;
 
 /**
  * TTS API Route.
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   // Strategy 1: Groq Orpheus neural voice
   try {
     const { audio, contentType } = await groqSynthesize(text, {
-      voice: "hannah",
+      voice: "tara",
       responseFormat: "wav",
     });
     return new NextResponse(new Uint8Array(audio), {

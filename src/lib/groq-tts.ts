@@ -1,5 +1,5 @@
 /**
- * Groq TTS — Orpheus model via OpenAI-compatible REST API.
+ * Groq TTS - Orpheus model via OpenAI-compatible REST API.
  *
  * Free tier: ~30 requests/min. No hard quota blocks.
  * Works perfectly in Vercel serverless (simple POST, no WebSocket).
@@ -15,11 +15,12 @@ const GROQ_TTS_URL = "https://api.groq.com/openai/v1/audio/speech";
 const MODEL = "canopylabs/orpheus-v1-english";
 
 // Voices suitable for children's educational content
+// Valid Orpheus voices: tara, leah, jess, leo, dan, mia, zac, zoe
 export const VOICES = {
-  friendly: "hannah", // Warm female, good for teaching
-  narrator: "diana",  // Clear female narrator
-  male: "daniel",     // Friendly male voice
-  energetic: "autumn", // Upbeat female
+  friendly: "tara",   // Warm female, good for teaching
+  narrator: "leah",   // Clear female narrator
+  male: "leo",        // Friendly male voice
+  energetic: "jess",  // Upbeat female
 } as const;
 
 export type VoiceName = (typeof VOICES)[keyof typeof VOICES];
