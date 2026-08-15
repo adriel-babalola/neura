@@ -457,7 +457,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
                 key={sceneIndex}
                 lines={sceneLines}
                 onLineDone={onLineDone}
-                autoAdvanceMs={sceneIndex === 0 ? 1200 : 1000}
+                autoAdvanceMs={sceneIndex === 0 ? 1800 : 1400}
               />
             )}
           </div>

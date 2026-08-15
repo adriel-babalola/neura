@@ -9,16 +9,15 @@ import {
 } from "@/lib/speech";
 
 /**
- * Voice system with two strategies (NO API key needed for either):
+ * Voice system — NO external API key needed.
  *
- * 1. Browser speechSynthesis (if voices are available)
- * 2. Google Translate TTS fallback (free, no auth, just audio URLs)
- *
- * Works on Brave/Ubuntu/Linux where speechSynthesis has no voices.
+ * Strategy 1: Browser speechSynthesis (if system has voices)
+ * Strategy 2: Our /api/tts route which proxies free TTS (no CORS issues)
  */
 
 const LOG = true;
 let audioElement: HTMLAudioElement | null = null;
+let speaking = false;
 
 function log(...args: unknown[]) {
   if (LOG) console.log("[neura:say]", ...args);
@@ -29,10 +28,10 @@ export function hasLocalVoice() {
 }
 
 /**
- * Split text into chunks of max ~200 chars (Google TTS limit per request).
+ * Split text into chunks of max ~190 chars for the TTS API.
  * Splits on sentence boundaries.
  */
-function chunkText(text: string, maxLen = 200): string[] {
+function chunkText(text: string, maxLen = 190): string[] {
   if (text.length <= maxLen) return [text];
   const chunks: string[] = [];
   let remaining = text;
@@ -41,11 +40,10 @@ function chunkText(text: string, maxLen = 200): string[] {
       chunks.push(remaining);
       break;
     }
-    // Find last sentence boundary within maxLen
     let splitAt = remaining.lastIndexOf(". ", maxLen);
-    if (splitAt === -1 || splitAt < 50) splitAt = remaining.lastIndexOf(", ", maxLen);
-    if (splitAt === -1 || splitAt < 50) splitAt = remaining.lastIndexOf(" ", maxLen);
-    if (splitAt === -1 || splitAt < 50) splitAt = maxLen;
+    if (splitAt === -1 || splitAt < 40) splitAt = remaining.lastIndexOf(", ", maxLen);
+    if (splitAt === -1 || splitAt < 40) splitAt = remaining.lastIndexOf(" ", maxLen);
+    if (splitAt === -1 || splitAt < 40) splitAt = maxLen;
     chunks.push(remaining.slice(0, splitAt + 1).trim());
     remaining = remaining.slice(splitAt + 1).trim();
   }
@@ -53,21 +51,34 @@ function chunkText(text: string, maxLen = 200): string[] {
 }
 
 /**
- * Play text using Google Translate's free TTS endpoint.
- * No API key, no server, just a URL that returns MP3.
+ * Play text using our /api/tts proxy route (avoids CORS).
  */
-async function speakWithGoogleTTS(text: string): Promise<void> {
-  const chunks = chunkText(text, 200);
+async function speakViaProxy(text: string): Promise<void> {
+  const chunks = chunkText(text, 190);
   for (const chunk of chunks) {
-    if (!isSpeechEnabled()) break;
-    const encoded = encodeURIComponent(chunk);
-    const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encoded}`;
-    await playAudioUrl(url);
+    if (!isSpeechEnabled() || !speaking) break;
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: chunk }),
+      });
+      if (!res.ok) {
+        log("proxy tts failed:", res.status);
+        continue;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      await playAudioUrl(url);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      log("proxy tts error:", err instanceof Error ? err.message : err);
+    }
   }
 }
 
 function playAudioUrl(url: string): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<void>((resolve) => {
     stopAudio();
     const audio = new Audio(url);
     audioElement = audio;
@@ -77,11 +88,11 @@ function playAudioUrl(url: string): Promise<void> {
     };
     audio.onerror = () => {
       audioElement = null;
-      reject(new Error("audio playback failed"));
+      resolve(); // Don't reject — just move on silently
     };
-    audio.play().catch((err) => {
+    audio.play().catch(() => {
       audioElement = null;
-      reject(err);
+      resolve(); // Don't reject — just move on silently
     });
   });
 }
@@ -101,6 +112,8 @@ export function say(text: string) {
     return;
   }
 
+  speaking = true;
+
   // Strategy 1: Browser speechSynthesis (if voices available)
   if (hasLocalVoice()) {
     log("local voice", `"${text.slice(0, 50)}"`);
@@ -108,19 +121,19 @@ export function say(text: string) {
     return;
   }
 
-  // Strategy 2: Google Translate TTS (free, no key, works everywhere)
-  log("google tts", `"${text.slice(0, 50)}"`);
-  speakWithGoogleTTS(text).catch((err) => {
-    log("google tts failed:", err instanceof Error ? err.message : err);
+  // Strategy 2: Our proxy TTS route (free, no CORS, no key)
+  log("proxy tts", `"${text.slice(0, 50)}"`);
+  speakViaProxy(text).catch((err) => {
+    log("proxy tts failed:", err instanceof Error ? err.message : err);
   });
 }
 
 export function prewarm(_texts: string[]) {
-  // No prewarming needed
   log("prewarm skipped");
 }
 
 export function stopSay() {
+  speaking = false;
   stopLocal();
   stopAudio();
 }
