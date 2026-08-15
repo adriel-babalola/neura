@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-surface-hover: var(--surface-hover);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
+  --color-glow: var(--glow);
+  --color-success: var(--success);
+  --color-warn: var(--warn);
+  --color-chalk-y: #F2C56B;
+  --color-chalk-p: #F0A6A6;
+  --color-chalk-b: #9CC5E8;
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-plus-jakarta);
+}
+
+:root {
+  /* Parent world: warm light */
+  --canvas: #FBFAF6;
+  --surface: #FFFFFF;
+  --surface2: #F3F1EA;
+  --surface-hover: #ECEAE1;
+  --ink: #1F2A25;
+  --muted: #5E6E66;
+  --line: #E4E2D8;
+  --accent: #D26B4A;
+  --accent-dim: #F6E3DA;
+  --glow: rgba(210, 107, 74, 0.32);
+  --success: #3E7A52;
+  --warn: #B07A1E;
+}
+
+:root[data-mode="board"] {
+  /* Child world: warm chalkboard */
+  --canvas: #1C2622;
+  --surface: #222F2A;
+  --surface2: #28362F;
+  --surface-hover: #2F3F37;
+  --ink: #F2F0E6;
+  --muted: #A9B6AE;
+  --line: rgba(242, 240, 230, 0.12);
+  --accent: #F2C56B;
+  --accent-dim: rgba(242, 197, 107, 0.14);
+  --glow: rgba(242, 197, 107, 0.4);
+  --success: #A9D4B4;
+  --warn: #F0A6A6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 300ms ease, color 300ms ease;
+}
+
+/* Aurora glow behind hero / auth screens (light, warm wash) */
+.aurora-bg {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 640px;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 50% 0%, var(--glow) 0%, transparent 58%),
+    radial-gradient(circle at 22% 18%, rgba(210, 107, 74, 0.09) 0%, transparent 46%),
+    radial-gradient(circle at 82% 12%, rgba(196, 164, 102, 0.12) 0%, transparent 46%);
+  filter: blur(60px);
+  opacity: 0.6;
+}
+
+/* Subtle top hairline gradient used on glass cards */
+.glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.45));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Chalk dust texture for the blackboard */
+.board-texture {
+  position: relative;
+}
+.board-texture::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  z-index: 0;
+}
+.board-texture > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Chalk glow on text (child board only) */
+.chalk-glow {
+  text-shadow: 0 0 8px rgba(242, 240, 230, 0.18);
+}
+
+/* Progress bar smooth fill */
+.progress-fill {
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Fade-in helper for onboarding steps */
+.fade-step {
+  animation: fadeStep 420ms ease both;
+}
+@keyframes fadeStep {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Question arrival signal: soft ring around the card */
+.question-alert {
+  animation: questionRing 2.6s ease-out infinite;
+}
+@keyframes questionRing {
+  0% { box-shadow: 0 0 0 0 rgba(242, 197, 107, 0.35), 0 8px 30px -8px rgba(0, 0, 0, 0.25); }
+  60% { box-shadow: 0 0 0 10px rgba(242, 197, 107, 0), 0 8px 30px -8px rgba(0, 0, 0, 0.25); }
+  100% { box-shadow: 0 0 0 0 rgba(242, 197, 107, 0), 0 8px 30px -8px rgba(0, 0, 0, 0.25); }
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .question-alert { animation: none; }
+}

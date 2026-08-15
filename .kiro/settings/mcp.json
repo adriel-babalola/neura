@@ -1,0 +1,10 @@
+{
+  "$schema": "https://docs.kiro.dev/schemas/mcp.json",
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
+      "env": {}
+    }
+  }
+}
