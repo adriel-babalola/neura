@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   // Strategy 1: Groq Orpheus neural voice
   try {
     const { audio, contentType } = await groqSynthesize(text, {
-      voice: "tara",
+      voice: "diana",
       responseFormat: "wav",
     });
     if (audio && audio.length > 0) {

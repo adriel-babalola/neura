@@ -5,7 +5,7 @@
  * Works perfectly in Vercel serverless (simple POST, no WebSocket).
  *
  * Model: canopylabs/orpheus-v1-english
- * Voices: tara, leah, jess, leo, dan, mia, zac, zoe
+ * Voices: autumn, diana, hannah, austin, daniel, troy
  * Docs: https://console.groq.com/docs/text-to-speech
  */
 
@@ -15,12 +15,12 @@ const GROQ_TTS_URL = "https://api.groq.com/openai/v1/audio/speech";
 const MODEL = "canopylabs/orpheus-v1-english";
 
 // Voices suitable for children's educational content
-// Valid Orpheus voices: tara, leah, jess, leo, dan, mia, zac, zoe
+// Valid voices: autumn, diana, hannah, austin, daniel, troy
 export const VOICES = {
-  friendly: "tara",   // Warm female, good for teaching
-  narrator: "leah",   // Clear female narrator
-  male: "leo",        // Friendly male voice
-  energetic: "jess",  // Upbeat female
+  friendly: "diana",    // Warm female, good for teaching
+  narrator: "hannah",   // Clear female narrator
+  male: "daniel",       // Friendly male voice
+  energetic: "autumn",  // Upbeat female
 } as const;
 
 export type VoiceName = (typeof VOICES)[keyof typeof VOICES];
