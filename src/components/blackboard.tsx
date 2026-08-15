@@ -69,12 +69,19 @@ export default function Blackboard({
 
   useEffect(() => {
     if (visible >= total) {
-      onLineDone?.(true);
-      return;
+      // Hold the scene so kids can read before advancing.
+      // ~60ms per character + 2s per math line, minimum 3s.
+      const textLen = lines
+        .filter((l) => l.kind === "text")
+        .reduce((sum, l) => sum + ((l as { text: string }).text?.length ?? 0), 0);
+      const mathCount = lines.filter((l) => l.kind === "math").length;
+      const holdMs = Math.max(3000, textLen * 60 + mathCount * 2000);
+      const t = setTimeout(() => onLineDone?.(true), holdMs);
+      return () => clearTimeout(t);
     }
     const t = setTimeout(() => setVisible((v) => v + 1), visible === 0 ? 350 : autoAdvanceMs);
     return () => clearTimeout(t);
-  }, [visible, total, onLineDone, autoAdvanceMs]);
+  }, [visible, total, lines, onLineDone, autoAdvanceMs]);
 
   const shown = lines.slice(0, visible);
   const hasMath = shown.some((l) => l.kind === "math");
