@@ -18,10 +18,16 @@ function log(...args: unknown[]) {
 }
 
 export function isRemoteAvailable() {
+  if (Date.now() >= pausedUntil && consecutiveFailures >= MAX_FAILURES) {
+    consecutiveFailures = 0;
+  }
   return Date.now() >= pausedUntil;
 }
 
 export function isQuotaBlocked() {
+  if (quotaBlocked && Date.now() >= pausedUntil) {
+    quotaBlocked = false;
+  }
   return quotaBlocked;
 }
 
