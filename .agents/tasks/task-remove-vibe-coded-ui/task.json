@@ -1,0 +1,14 @@
+{
+  "task_id": "task-remove-vibe-coded-ui",
+  "task_description": "Remove all vibe-coded UI indicators from the Neura app: double icons on signin cards, all emojis site-wide, em-dashes in displayed text, fake trust stats, Gemini powered badge, and improve New Lesson page responsiveness.",
+  "status": "completed",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "skipped",
+    "tests": "skipped",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "TypeScript compilation and full test suite cannot run (INTEGRATIONS_ONLY, no node_modules). Code review confirms correctness: no emojis remain (grep verified), no em-dashes remain (grep verified), all imports are consistent, and changes are minimal/surgical. Semantic review approved."
+  }
+}

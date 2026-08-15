@@ -19,16 +19,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ lesson });
   } catch (err) {
     const message = err instanceof Error ? err.message : "UNKNOWN";
-    const status = message === "NO_KEY" ? 503 : 500;
+    console.error("[generate-lesson] ERROR:", message);
+    
+    if (message === "NO_KEY") {
+      return NextResponse.json(
+        { error: "NO_KEY", detail: "Set OPENROUTER_API_KEY or GROQ_API_KEY in environment variables." },
+        { status: 503 }
+      );
+    }
+    if (message === "RATE_LIMITED") {
+      return NextResponse.json(
+        { error: "RATE_LIMITED", detail: "Too many requests. Please wait a moment and try again." },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
-      {
-        error: message,
-        detail:
-          message === "NO_KEY"
-            ? "GEMINI_API_KEY is not configured on the server."
-            : "The AI could not generate a lesson. Please try again.",
-      },
-      { status }
+      { error: message, detail: "The AI could not generate a lesson. Please try again." },
+      { status: 500 }
     );
   }
 }
