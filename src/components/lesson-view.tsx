@@ -34,6 +34,39 @@ function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Convert LaTeX math to speakable English text.
+ * Handles common patterns: fractions, multiplication, addition, equals, etc.
+ */
+function latexToSpeech(latex: string): string {
+  let s = latex;
+  // Remove \text{} wrappers, keep content
+  s = s.replace(/\\text\{([^}]*)\}/g, "$1");
+  // Fractions: \frac{a}{b} → "a over b"
+  s = s.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, "$1 over $2");
+  // Multiplication
+  s = s.replace(/\\times/g, " times ");
+  s = s.replace(/\\cdot/g, " times ");
+  // Division
+  s = s.replace(/\\div/g, " divided by ");
+  // Not equal
+  s = s.replace(/\\neq/g, " is not equal to ");
+  // Equals
+  s = s.replace(/=/g, " equals ");
+  // Plus/minus
+  s = s.replace(/\+/g, " plus ");
+  s = s.replace(/-/g, " minus ");
+  // Remove remaining LaTeX commands
+  s = s.replace(/\\[a-zA-Z]+/g, " ");
+  // Remove braces, underscores, carets
+  s = s.replace(/[{}^_]/g, " ");
+  // Clean up whitespace
+  s = s.replace(/\s+/g, " ").trim();
+  // Skip if too short or just symbols
+  if (s.length < 2) return "";
+  return s;
+}
+
 function isAccepted(q: Question, input: string) {
   const n = normalize(input);
   if (!n) return false;
@@ -335,11 +368,19 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
     const isFirst = firstSceneRef.current;
     firstSceneRef.current = false;
     const t = setTimeout(() => {
-      const text = sceneLines
-        .filter((l) => l.kind === "text" && l.text)
-        .map((l) => (l as Extract<BoardLine, { kind: "text" }>).text)
-        .join(". ")
-        .slice(0, 400);
+      // Build narration from ALL line types (text + math)
+      const parts: string[] = [];
+      for (const line of sceneLines) {
+        if (line.kind === "text" && (line as { text: string }).text) {
+          parts.push((line as { text: string }).text);
+        } else if (line.kind === "math") {
+          // Convert LaTeX to speakable text
+          const latex = (line as { latex: string }).latex;
+          const spoken = latexToSpeech(latex);
+          if (spoken) parts.push(spoken);
+        }
+      }
+      const text = parts.join(". ").slice(0, 600);
       if (text.trim()) say(text);
     }, isFirst ? 1400 : 250);
     return () => clearTimeout(t);
