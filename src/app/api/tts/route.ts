@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 const MAX_TEXT = 200;
 
 /**
- * TTS API Route — Proxies Google Translate TTS (free, no key needed).
+ * TTS API Route - Proxies Google Translate TTS (free, no key needed).
  * We proxy it server-side to avoid CORS issues in the browser.
  */
 export async function POST(request: Request) {

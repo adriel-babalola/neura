@@ -16,21 +16,20 @@ import {
   Star,
   UserRound,
   Wand2,
-  Zap,
 } from "lucide-react";
 
 const FEATURES = [
   {
     icon: BrainCircuit,
     title: "Adapts to your child",
-    desc: "Lessons are generated around their age, interests, and learning style — a dinosaur fan masters fractions with dino eggs instead of worksheets.",
+    desc: "Lessons are generated around their age, interests, and learning style. A dinosaur fan masters fractions with dino eggs instead of worksheets.",
     span: "lg:col-span-2",
     stat: "Personalized learning paths",
   },
   {
     icon: MessageCircleQuestion,
     title: "Socratic, never preachy",
-    desc: "Neura teaches by asking questions that make kids reason, and celebrates the thinking — not just the answer.",
+    desc: "Neura teaches by asking questions that make kids reason, and celebrates the thinking, not just the answer.",
     span: "",
   },
   {
@@ -137,10 +136,10 @@ const PLANS = [
 ];
 
 const TRUST_LOGOS = [
-  "Used by 2,400+ families",
-  "4.9/5 parent rating",
-  "Built in Canada 🇨🇦",
-  "Child-safe AI",
+  "Adaptive AI tutoring",
+  "Child-safe by design",
+  "No data stored remotely",
+  "Free to start",
 ];
 
 export default function Home() {
@@ -188,18 +187,6 @@ export default function Home() {
 
       {/* ── Hero ────────────────────────────────────────── */}
       <section className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-6 pb-16 pt-20 text-center md:pb-24 md:pt-28 lg:pt-32">
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent-dim px-4 py-1.5"
-        >
-          <Zap className="h-3.5 w-3.5 text-accent" />
-          <span className="text-xs font-medium text-accent">
-            Powered by Gemini 2.5 — Adaptive AI tutoring
-          </span>
-        </motion.div>
-
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -219,8 +206,8 @@ export default function Home() {
           transition={{ delay: 0.2 }}
           className="mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg md:text-xl"
         >
-          Neura learns who your child is — their interests, how they think, and where they
-          struggle — then builds a lesson just for them. Teaching through chalkboards,
+          Neura learns who your child is, their interests, how they think, and where they
+          struggle, then builds a lesson just for them. Teaching through chalkboards,
           stories, and questions that feel like play.
         </motion.p>
 
@@ -234,7 +221,7 @@ export default function Home() {
             href="/signin"
             className="group inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-accent px-8 text-sm font-semibold text-white shadow-lg shadow-accent/25 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-accent/30 active:scale-[0.98]"
           >
-            Start free — no credit card
+            Start free, no credit card
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <a
@@ -264,7 +251,7 @@ export default function Home() {
           ))}
         </motion.div>
 
-        {/* Hero visual — App preview mockup */}
+        {/* Hero visual - App preview mockup */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -570,7 +557,7 @@ export default function Home() {
           <div className="flex items-center gap-4 text-xs text-muted">
             <span className="flex items-center gap-1.5">
               <Wand2 className="h-3 w-3" />
-              Demo only — nothing stored remotely
+              Demo only, nothing stored remotely
             </span>
             <span>Privacy</span>
             <span>Terms</span>

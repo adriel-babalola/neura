@@ -548,9 +548,9 @@ export default function ParentPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2 }}
-                className="mx-auto w-full max-w-4xl px-6 py-8"
+                className="mx-auto w-full max-w-4xl xl:max-w-5xl 2xl:max-w-6xl px-6 py-8"
               >
-                <div className="grid gap-6 lg:grid-cols-5">
+                <div className="grid gap-6 lg:gap-8 lg:grid-cols-5">
                   {/* Main form */}
                   <Card className="lg:col-span-3 space-y-6 p-6">
                     <div>
@@ -920,12 +920,6 @@ export default function ParentPage() {
                     child&apos;s interests, age, and learning style. Every lesson uses the Socratic
                     method: teaching through questions, not answers.
                   </p>
-                  <div className="mt-4 flex items-center gap-2 rounded-lg bg-accent-dim px-3 py-2">
-                    <Sparkles className="h-4 w-4 text-accent" />
-                    <span className="text-xs font-medium text-accent">
-                      Powered by Gemini 2.5 Flash
-                    </span>
-                  </div>
                 </Card>
               </motion.div>
             )}
