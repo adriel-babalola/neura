@@ -22,7 +22,7 @@ export const Button = forwardRef<HTMLButtonElement, BtnProps>(function Button(
     "inline-flex items-center justify-center gap-2 rounded-xl font-display font-medium transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer select-none";
   const sizes = size === "lg" ? "min-h-12 px-6 text-[15px]" : "min-h-11 px-4 text-sm";
   const variants = {
-    primary: "bg-accent text-canvas hover:brightness-[1.06] shadow-sm shadow-accent/20",
+    primary: "bg-accent text-white hover:brightness-[1.06] shadow-sm shadow-accent/20",
     outline: "border border-line text-ink hover:bg-surface2",
     ghost: "text-muted hover:text-ink hover:bg-surface2",
   };
@@ -95,5 +95,30 @@ export function StepProgress({ current, total }: { current: number; total: numbe
         />
       ))}
     </div>
+  );
+}
+
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`skeleton ${className}`} />;
+}
+
+export function Badge({
+  children,
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  variant?: "default" | "accent" | "success";
+}) {
+  const variants = {
+    default: "border-line bg-surface2 text-muted",
+    accent: "border-accent/30 bg-accent-dim text-accent",
+    success: "border-success/30 bg-success/10 text-success",
+  };
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${variants[variant]}`}
+    >
+      {children}
+    </span>
   );
 }
