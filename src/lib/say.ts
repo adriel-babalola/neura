@@ -117,13 +117,16 @@ export function say(text: string): Promise<void> {
   // Strategy 1: Browser speechSynthesis (if voices available)
   if (hasLocalVoice()) {
     log("local voice", `"${text.slice(0, 50)}"`);
-    return speakLocalAwait(text);
+    return speakLocalAwait(text).catch((err) => {
+      log("local voice failed, trying proxy:", err instanceof Error ? err.message : err);
+      return speakViaProxy(text);
+    });
   }
 
-  // Strategy 2: Our proxy TTS route (free, no CORS, no key)
+  // Strategy 2: Our proxy TTS route (Groq Orpheus -> Google Translate fallback)
   log("proxy tts", `"${text.slice(0, 50)}"`);
   return speakViaProxy(text).catch((err) => {
-    log("proxy tts failed:", err instanceof Error ? err.message : err);
+    log("all TTS strategies failed:", err instanceof Error ? err.message : err);
   });
 }
 

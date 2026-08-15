@@ -132,12 +132,15 @@ export function speakAwait(text: string): Promise<void> {
 
     let settled = false;
     // Safety: never hang forever if the browser drops the utterance.
+    // Formula: 120ms/char (average speaking rate ~140 wpm) with
+    // minimum 6s (short phrases need time for TTS init) and max 90s cap.
+    const estimatedMs = Math.min(90000, Math.max(6000, text.length * 120));
     const safety = setTimeout(() => {
       if (!settled) {
         settled = true;
         resolve();
       }
-    }, Math.max(4000, text.length * 120));
+    }, estimatedMs);
     const done = () => {
       if (settled) return;
       settled = true;

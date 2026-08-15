@@ -62,6 +62,7 @@ export async function synthesize(
       voice,
       response_format: responseFormat,
     }),
+    signal: AbortSignal.timeout(15000), // 15s timeout for TTS generation
   });
 
   if (!res.ok) {

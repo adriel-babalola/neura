@@ -59,10 +59,12 @@ export default function Blackboard({
   lines,
   onLineDone,
   autoAdvanceMs = 700,
+  narrationMinMs,
 }: {
   lines: BoardLine[];
   onLineDone?: (done: boolean) => void;
   autoAdvanceMs?: number;
+  narrationMinMs?: number;
 }) {
   const [visible, setVisible] = useState(0);
   const total = lines.length;
@@ -70,18 +72,22 @@ export default function Blackboard({
   useEffect(() => {
     if (visible >= total) {
       // Hold the scene so kids can read before advancing.
-      // ~60ms per character + 2s per math line, minimum 3s.
+      // Calculate hold time based on content length.
       const textLen = lines
         .filter((l) => l.kind === "text")
         .reduce((sum, l) => sum + ((l as { text: string }).text?.length ?? 0), 0);
       const mathCount = lines.filter((l) => l.kind === "math").length;
-      const holdMs = Math.max(9000, textLen * 120 + mathCount * 5000);
+      const contentHoldMs = Math.max(9000, textLen * 120 + mathCount * 5000);
+      // Ensure we hold at least as long as narration needs
+      const holdMs = narrationMinMs
+        ? Math.max(contentHoldMs, narrationMinMs)
+        : contentHoldMs;
       const t = setTimeout(() => onLineDone?.(true), holdMs);
       return () => clearTimeout(t);
     }
     const t = setTimeout(() => setVisible((v) => v + 1), visible === 0 ? 350 : autoAdvanceMs);
     return () => clearTimeout(t);
-  }, [visible, total, lines, onLineDone, autoAdvanceMs]);
+  }, [visible, total, lines, onLineDone, autoAdvanceMs, narrationMinMs]);
 
   const shown = lines.slice(0, visible);
   const hasMath = shown.some((l) => l.kind === "math");
