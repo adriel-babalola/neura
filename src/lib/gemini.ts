@@ -13,10 +13,12 @@ import type { Lesson, LessonMode, LessonRequest } from "@/lib/types";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
-// Free model on OpenRouter — use the free router for best availability
-const OPENROUTER_MODEL = "openrouter/auto";
+// Specific free model on OpenRouter for reliable free-tier usage
+const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
+const GEMINI_MODEL = "gemini-2.0-flash";
 
 const SYS_PROMPT = `You are Neura, a world-class Socratic AI tutor for children aged 8-12. Turn abstract concepts into vivid adventures. Never give direct answers. Guide children to discover understanding themselves.
 
@@ -49,45 +51,67 @@ Generate 5-8 scenes, 4-5 questions. JSON only.`;
 }
 
 export async function generateLesson(req: LessonRequest): Promise<Lesson> {
-  // Try OpenRouter first, then Groq as fallback
+  // Try OpenRouter first (with retry), then Groq, then Gemini as fallbacks
   const providers = getProviders();
   if (providers.length === 0) {
     throw new Error("NO_KEY");
   }
 
+  const attempted: string[] = [];
   let lastError = "";
   for (const config of providers) {
+    attempted.push(`${config.name}(${config.model})`);
     try {
       const result = await callProvider(config, req);
       return result;
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
-      console.error(`[generate-lesson] ${config.url} failed: ${lastError}`);
+      console.error(`[generate-lesson] ${config.name} failed: ${lastError}`);
+
+      // Retry once for OpenRouter on 5xx or 429 errors
+      if (config.url === OPENROUTER_URL && /^(5\d{2}|429):/.test(lastError)) {
+        console.log(`[generate-lesson] Retrying ${config.name} after 2s delay...`);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        try {
+          const result = await callProvider(config, req);
+          return result;
+        } catch (retryErr) {
+          lastError = retryErr instanceof Error ? retryErr.message : String(retryErr);
+          console.error(`[generate-lesson] ${config.name} retry failed: ${lastError}`);
+        }
+      }
       // Try next provider
     }
   }
 
-  throw new Error(lastError || "ALL_PROVIDERS_FAILED");
+  throw new Error(
+    `ALL_PROVIDERS_FAILED: Tried ${attempted.join(", ")}. Last error: ${lastError}`
+  );
 }
 
-function getProviders(): { url: string; model: string; apiKey: string }[] {
-  const providers: { url: string; model: string; apiKey: string }[] = [];
+function getProviders(): { name: string; url: string; model: string; apiKey: string }[] {
+  const providers: { name: string; url: string; model: string; apiKey: string }[] = [];
 
   const orKey = process.env.OPENROUTER_API_KEY;
   if (orKey && orKey.length > 10 && !orKey.includes("PASTE_")) {
-    providers.push({ url: OPENROUTER_URL, model: OPENROUTER_MODEL, apiKey: orKey });
+    providers.push({ name: "OpenRouter", url: OPENROUTER_URL, model: OPENROUTER_MODEL, apiKey: orKey });
   }
 
   const groqKey = process.env.GROQ_API_KEY;
   if (groqKey && groqKey.length > 10 && !groqKey.includes("PASTE_")) {
-    providers.push({ url: GROQ_URL, model: GROQ_MODEL, apiKey: groqKey });
+    providers.push({ name: "Groq", url: GROQ_URL, model: GROQ_MODEL, apiKey: groqKey });
+  }
+
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey && geminiKey.length > 10 && !geminiKey.includes("PASTE_")) {
+    providers.push({ name: "Gemini", url: GEMINI_URL, model: GEMINI_MODEL, apiKey: geminiKey });
   }
 
   return providers;
 }
 
 async function callProvider(
-  config: { url: string; model: string; apiKey: string },
+  config: { name: string; url: string; model: string; apiKey: string },
   req: LessonRequest
 ): Promise<Lesson> {
   const headers: Record<string, string> = {
@@ -110,7 +134,8 @@ async function callProvider(
     max_tokens: 8192,
   };
 
-  if (config.url === GROQ_URL) {
+  // Enable structured JSON output for all providers
+  if (config.url === GROQ_URL || config.url === OPENROUTER_URL || config.url === GEMINI_URL) {
     body.response_format = { type: "json_object" };
   }
 

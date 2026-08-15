@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: message, detail: "The AI could not generate a lesson. Please try again." },
+      { error: message, detail: "All AI providers failed to generate a lesson. Providers attempted: OpenRouter, Groq, Gemini. Please check your API keys or try again in a moment." },
       { status: 500 }
     );
   }
