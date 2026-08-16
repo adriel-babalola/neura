@@ -6,10 +6,8 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Award,
   BookOpen,
-  BookOpenText,
   Calculator,
   Calendar,
-  Check,
   ChevronRight,
   Clock,
   Flame,
@@ -37,7 +35,7 @@ import { useProfile } from "@/lib/profile";
 import { useLessonStore } from "@/lib/lesson-store";
 import { useLessonHistory } from "@/lib/history";
 import { useMounted } from "@/lib/use-mounted";
-import type { Lesson, LessonMode, LessonDifficulty } from "@/lib/types";
+import type { Lesson, LessonDifficulty } from "@/lib/types";
 
 const SUBJECTS = [
   { label: "Math", icon: Calculator, color: "text-blue-400" },
@@ -53,21 +51,6 @@ const SUGGESTIONS = [
   "Can't understand place value",
   "Mixing up there/their/they're",
   "Run-on sentences",
-];
-
-const MODES: { value: LessonMode; label: string; icon: typeof Presentation; desc: string }[] = [
-  {
-    value: "board",
-    label: "Chalkboard",
-    icon: Presentation,
-    desc: "Teacher-style board lesson with animated math",
-  },
-  {
-    value: "story",
-    label: "Story",
-    icon: BookOpenText,
-    desc: "A narrative adventure with embedded puzzles",
-  },
 ];
 
 const NAV_ITEMS = [
@@ -278,7 +261,7 @@ export default function ParentPage() {
   const [subject, setSubject] = useState("");
   const [struggle, setStruggle] = useState("");
   const [context, setContext] = useState("");
-  const [mode, setMode] = useState<LessonMode>("board");
+  const mode = "story" as const;
   const [difficulty, setDifficulty] = useState<LessonDifficulty>("intermediate");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
@@ -396,7 +379,7 @@ export default function ParentPage() {
       ? Math.round((stats.totalCorrect / stats.totalQuestions) * 100)
       : 0;
 
-  const estimatedDuration = mode === "board" ? "~5-8 min" : "~8-12 min";
+  const estimatedDuration = "~8-12 min";
 
   return (
     <div className="flex h-screen bg-canvas overflow-hidden">
@@ -823,41 +806,8 @@ export default function ParentPage() {
                     </Button>
                   </Card>
 
-                  {/* Sidebar - Mode + Difficulty + Duration + Recent Struggles */}
+                  {/* Sidebar - Difficulty + Duration + Recent Struggles */}
                   <div className="space-y-4 lg:col-span-2">
-                    {/* Mode picker - 2 column grid */}
-                    <Card className="p-5">
-                      <p className="mb-3 font-display text-sm font-semibold text-ink">Teaching Mode</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        {MODES.map((m) => {
-                          const Icon = m.icon;
-                          const selected = mode === m.value;
-                          return (
-                            <button
-                              key={m.value}
-                              onClick={() => setMode(m.value)}
-                              className={`relative flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all cursor-pointer ${
-                                selected
-                                  ? "border-accent bg-gradient-to-br from-accent-dim to-surface shadow-sm"
-                                  : "border-line bg-surface2 hover:border-accent/40"
-                              }`}
-                            >
-                              {selected && (
-                                <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent">
-                                  <Check className="h-3 w-3 text-white" />
-                                </span>
-                              )}
-                              <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${selected ? "bg-accent/15" : "bg-line"}`}>
-                                <Icon className={`h-5 w-5 ${selected ? "text-accent" : "text-muted"}`} />
-                              </span>
-                              <span className="font-display text-sm font-bold text-ink">{m.label}</span>
-                              <span className="text-[10px] leading-tight text-muted">{m.desc}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </Card>
-
                     {/* Difficulty Selector */}
                     <Card className="p-5">
                       <p className="mb-3 font-display text-sm font-semibold text-ink">Difficulty Level</p>
@@ -906,11 +856,6 @@ export default function ParentPage() {
                         <div className="flex items-center justify-between">
                           <span className="text-muted">Subject</span>
                           <span className="font-medium text-ink">{subject || "Not selected"}</span>
-                        </div>
-                        <div className="h-px bg-line" />
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted">Mode</span>
-                          <span className="font-medium text-ink capitalize">{mode}</span>
                         </div>
                         <div className="h-px bg-line" />
                         <div className="flex items-center justify-between">

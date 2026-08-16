@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Lesson, LessonMode, LessonRequest } from "@/lib/types";
+import type { Lesson, LessonRequest } from "@/lib/types";
 
 /**
  * Lesson generation using OpenRouter (free models, no credit card).
@@ -20,37 +20,38 @@ const OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 const GEMINI_MODEL = "gemini-2.0-flash";
 
-const SYS_PROMPT = `You are Neura, a world-class Socratic AI tutor for children aged 8-12. Turn abstract concepts into vivid adventures. Never give direct answers. Guide children to discover understanding themselves.
+const STORY_MODE_PROMPT = `You are Neura, a world-class Socratic AI tutor for children aged 8-12. You create immersive story-based lessons that weave academic concepts into vivid narrative adventures. Never give direct answers. Guide children to discover understanding themselves.
 
 RULES:
-1. Start with a concrete real-world scenario the child can picture.
-2. Break every step into its own scene. Never skip steps.
-3. Use "math" lines for ALL formulas/equations (valid LaTeX). Never put math in text lines.
-4. Include one "common mistake" scene showing what goes wrong and why.
-5. End with a generalization pattern.
-6. Use color hints: "text-chalk-y" (yellow=key terms), "text-chalk-p" (pink=warnings), "text-chalk-b" (blue=encouragement).
-7. Questions should feel like natural pauses, not tests. Include 4-6 accept variations.
-8. Keep text lines SHORT (under 80 chars). Use the child's interest in examples.
-9. Do not use em-dashes or en-dashes. Use commas or periods.
-
-BOARD MODE: Every scene MUST have at least one "math" line with valid LaTeX.
-STORY MODE: All lines are "text". Weave concepts into narrative.
+1. Start with a concrete real-world scenario the child can picture, connected to their interest.
+2. Each scene is a narrative paragraph (2-4 sentences) that advances the story AND teaches a concept.
+3. Embed questions naturally as story pauses where the character needs help.
+4. Include one scene showing a common mistake as a plot obstacle.
+5. End with a reflection that ties the story conclusion to the lesson learned.
+6. Questions should feel like the character asking for help, not a test.
+7. Include 4-6 accept variations for each question answer.
+8. Use the child's interest to shape characters and setting.
+9. Do not use em-dashes or en-dashes. Use commas or periods instead.
+10. Keep narratives vivid but concise. Each scene narrative should be 2-4 sentences.
 
 OUTPUT: Valid JSON only. No markdown fences.
-Fields: id, mode, title, subject, focus, childName, intro, scenes (5-8), questions (4-5), reflection.
-Each scene has "lines" array: {kind:"text",text:"...",color:"..."} or {kind:"math",latex:"..."} or {kind:"divider"}
-Each question: {id, sceneIndex (0-based int), prompt, hint, deeperHint, answer, accept (array)}`;
+Fields: id, mode ("story"), title, subject, focus, childName, intro, reflection, scenes (5-7), questions (4-5).
+Each scene: {index (0-based int), narrative (string), question (null or Question object)}
+Each question: {id, sceneIndex (matching scene index), prompt, hint, deeperHint, answer, accept (array of strings)}
+
+The questions array at the top level should contain ALL questions also referenced in scenes.
+A scene with a question means the story pauses there for the child to answer.`;
 
 function buildUserPrompt(req: LessonRequest) {
   const c = req.child;
-  let prompt = `Lesson for ${c.name}, age ${c.age}, loves "${c.interest}".
+  let prompt = `Create a story-based lesson for ${c.name}, age ${c.age}, who loves "${c.interest}".
 Learning style: ${c.learningStyle}. Frustration: ${c.frustration || "not specified"}.
 Subject: ${req.subject}. Struggled with: ${req.struggle}. Context: ${req.context || "none"}.
-Mode: ${req.mode === "story" ? "STORY (all text)" : "BOARD (text + LaTeX math every scene)"}.`;
+Mode: STORY (narrative adventure with embedded questions).`;
   if (req.difficulty) {
     prompt += `\nDifficulty level: ${req.difficulty}. Adjust complexity accordingly.`;
   }
-  prompt += `\nGenerate 5-8 scenes, 4-5 questions. JSON only.`;
+  prompt += `\nGenerate 5-7 scenes, 4-5 questions embedded naturally in the story. JSON only.`;
   return prompt;
 }
 
@@ -131,11 +132,11 @@ async function callProvider(
   const body: Record<string, unknown> = {
     model: config.model,
     messages: [
-      { role: "system", content: SYS_PROMPT },
+      { role: "system", content: STORY_MODE_PROMPT },
       { role: "user", content: buildUserPrompt(req) },
     ],
     temperature: 0.85,
-    max_tokens: 8192,
+    max_tokens: 2500,
   };
 
   // Enable structured JSON output for all providers
@@ -165,15 +166,7 @@ async function callProvider(
   const scenesOk =
     parsed.scenes?.length > 0 &&
     parsed.scenes.every(
-      (s) =>
-        Array.isArray(s.lines) &&
-        s.lines.length > 0 &&
-        s.lines.every(
-          (l) =>
-            (l.kind === "text" && l.text?.trim()) ||
-            (l.kind === "math" && l.latex?.trim()) ||
-            l.kind === "divider"
-        )
+      (s) => typeof s.narrative === "string" && s.narrative.trim().length > 0
     );
   if (!parsed.questions?.length || !scenesOk) {
     throw new Error("MALFORMED");

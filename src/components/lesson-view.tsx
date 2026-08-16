@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   CheckCircle2,
   HelpCircle,
   LayoutDashboard,
@@ -14,9 +13,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import Blackboard from "@/components/blackboard";
-import ChalkDust from "@/components/chalk-dust";
-import type { BoardLine, Lesson, Question } from "@/lib/types";
+import type { Lesson, Question, Scene } from "@/lib/types";
 import { prewarm, say, stopSay } from "@/lib/say";
 import {
   isSpeechEnabled,
@@ -25,186 +22,6 @@ import {
   speechStatus,
   unlockSpeech,
 } from "@/lib/speech";
-
-/**
- * Convert LaTeX math notation to child-friendly spoken text.
- * Handles fractions, operators, and common commands.
- *
- * Order of operations:
- * 1. Extract \text{} content into placeholders (protects English text)
- * 2. Handle \frac (safe now - nested \text braces are gone)
- * 3. Handle named LaTeX operators
- * 4. Handle symbolic operators (+, -, =) only in math context
- * 5. Strip remaining LaTeX commands and braces
- * 6. Restore text placeholders
- */
-function latexToSpoken(latex: string): string {
-  let s = latex;
-
-  // Step 1: Extract \text{...} content into placeholders to protect
-  // English text from operator replacements (e.g. "8-slice" stays intact).
-  const textSlots: string[] = [];
-  s = s.replace(/\\text\{([^}]*)}/g, (_match, content: string) => {
-    const idx = textSlots.length;
-    textSlots.push(content);
-    return `__TEXT_${idx}__`;
-  });
-
-  // Step 2: \frac{a}{b} -> "a over b"
-  // Now safe because \text braces have been replaced with placeholders.
-  s = s.replace(/\\frac\{([^}]*)}\{([^}]*)}/g, "$1 over $2");
-
-  // Step 3: Named LaTeX operators
-  s = s.replace(/\\times/g, " times ");
-  s = s.replace(/\\cdot/g, " times ");
-  s = s.replace(/\\neq/g, " does not equal ");
-  s = s.replace(/\\div/g, " divided by ");
-  s = s.replace(/\\pm/g, " plus or minus ");
-  s = s.replace(/\\leq/g, " is less than or equal to ");
-  s = s.replace(/\\geq/g, " is greater than or equal to ");
-  s = s.replace(/\\lt/g, " is less than ");
-  s = s.replace(/\\gt/g, " is greater than ");
-  s = s.replace(/\\approx/g, " is approximately ");
-  s = s.replace(/\\quad/g, " ");
-
-  // Step 4: Symbolic operators - only in mathematical context.
-  // Uses capture groups instead of lookbehind for Safari/iOS compatibility.
-  // Plus: only when between digits, whitespace, closing/opening braces or parens
-  s = s.replace(/([\d\s})\]])\s*\+\s*([\d\s{(\[])/g, "$1 plus $2");
-  // Minus: only when between digits, whitespace, closing/opening braces or parens
-  // This avoids replacing hyphens inside words like "8-slice"
-  s = s.replace(/([\d\s})\]])\s*-\s*([\d\s{(\[])/g, "$1 minus $2");
-  // Equals
-  s = s.replace(/=/g, " equals ");
-
-  // Step 5: Strip remaining backslash commands (e.g. \sqrt, \left, \right)
-  s = s.replace(/\\[a-zA-Z]+/g, " ");
-
-  // Remove braces
-  s = s.replace(/[{}]/g, "");
-
-  // Step 6: Restore text placeholders
-  for (let i = 0; i < textSlots.length; i++) {
-    s = s.replace(`__TEXT_${i}__`, textSlots[i]);
-  }
-
-  // Collapse whitespace
-  s = s.replace(/\s+/g, " ").trim();
-
-  return s;
-}
-
-/**
- * Summarize scene content into child-friendly spoken explanation.
- * Instead of reading the board verbatim, this creates a natural explanation
- * that helps the child understand the key mathematical concepts.
- */
-function summarizeForSpeech(lines: BoardLine[]): string {
-  const parts: string[] = [];
-
-  for (const line of lines) {
-    if (line.kind === "divider") continue;
-
-    if (line.kind === "text") {
-      const text = (line as Extract<BoardLine, { kind: "text" }>).text;
-      if (!text?.trim()) continue;
-      // Use text lines as-is since they are already in natural language
-      parts.push(text);
-      continue;
-    }
-
-    if (line.kind === "math") {
-      const spoken = latexToSpoken(line.latex);
-      if (!spoken.trim()) continue;
-
-      // Detect common math patterns and explain them naturally
-      const latex = line.latex;
-
-      // Fraction addition: \frac{a}{b} + \frac{c}{b} = \frac{a+c}{b}
-      const fracAddMatch = latex.match(
-        /\\frac\{(\d+)}\{(\d+)}\s*\+\s*\\frac\{(\d+)}\{(\d+)}\s*=\s*\\frac\{([^}]+)}\{(\d+)}/
-      );
-      if (fracAddMatch) {
-        const [, a, b, c, d, result, denom] = fracAddMatch;
-        if (b === d) {
-          parts.push(
-            `When we add ${a} ${denominatorWord(b)} and ${c} ${denominatorWord(d)}, ` +
-            `we keep the bottom number the same and just add the top numbers, ` +
-            `giving us ${result} ${denominatorWord(denom)}.`
-          );
-          continue;
-        }
-      }
-
-      // Fraction simplification: \frac{a}{b} = \frac{c}{d}
-      const fracSimplify = latex.match(
-        /\\frac\{(\d+)}\{(\d+)}\s*=\s*\\frac\{(\d+)}\{(\d+)}/
-      );
-      if (fracSimplify) {
-        const [, a, b, c, d] = fracSimplify;
-        parts.push(
-          `${a} over ${b} simplifies to ${c} over ${d}. ` +
-          `We can simplify by dividing both numbers by the same amount.`
-        );
-        continue;
-      }
-
-      // Multiplication: a \times b = c
-      const multMatch = latex.match(/(\d+)\s*\\times\s*(\d+)\s*=\s*(\d+)/);
-      if (multMatch) {
-        const [, a, b, c] = multMatch;
-        parts.push(`${a} times ${b} gives us ${c}.`);
-        continue;
-      }
-
-      // Division: a \div b = c
-      const divMatch = latex.match(/(\d+)\s*\\div\s*(\d+)\s*=\s*(\d+)/);
-      if (divMatch) {
-        const [, a, b, c] = divMatch;
-        parts.push(`${a} divided by ${b} equals ${c}.`);
-        continue;
-      }
-
-      // Generic equation with equals: just read the spoken version naturally
-      if (latex.includes("=")) {
-        parts.push(`Let me show you: ${spoken}.`);
-        continue;
-      }
-
-      // Fallback: read the spoken conversion
-      parts.push(spoken);
-    }
-  }
-
-  // Join parts and limit length
-  const joined = parts.join(" ").replace(/\s+/g, " ").trim();
-  return joined.slice(0, 900);
-}
-
-/**
- * Convert a denominator number to its spoken word form.
- * e.g. "2" -> "halves", "3" -> "thirds", "8" -> "eighths"
- */
-function denominatorWord(denom: string): string {
-  const n = parseInt(denom, 10);
-  if (isNaN(n) || n <= 1) return denom;
-  const words: Record<number, string> = {
-    2: "halves",
-    3: "thirds",
-    4: "fourths",
-    5: "fifths",
-    6: "sixths",
-    7: "sevenths",
-    8: "eighths",
-    9: "ninths",
-    10: "tenths",
-    12: "twelfths",
-    16: "sixteenths",
-    20: "twentieths",
-    100: "hundredths",
-  };
-  return words[n] || `${denom}ths`;
-}
 
 type Status = "idle" | "correct" | "wrong" | "revealed";
 
@@ -298,7 +115,7 @@ function QuestionPanel({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="Your answer…"
+          placeholder="Your answer..."
           className="min-h-11 flex-1 rounded-xl border border-line bg-surface px-3 text-sm text-ink placeholder:text-muted/60 focus:border-accent focus:outline-none"
           autoFocus
         />
@@ -343,8 +160,7 @@ function QuestionPanel({
             animate={{ opacity: 1, scale: 1 }}
             className="rounded-xl bg-success/15 px-4 py-3 text-sm text-success"
           >
-            <span className="font-display font-semibold">You got it!</span> That&apos;s the reasoning,
-            and the board continues.
+            <span className="font-display font-semibold">You got it!</span> Great reasoning. The story continues...
           </motion.div>
         )}
       </AnimatePresence>
@@ -352,34 +168,39 @@ function QuestionPanel({
   );
 }
 
-function StoryPage({ lines, onDone }: { lines: BoardLine[]; onDone: () => void }) {
-  const textLines = lines.filter((l) => l.kind === "text");
-  const [visible, setVisible] = useState(0);
+function StoryScene({ scene, onDone }: { scene: Scene; onDone: () => void }) {
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (visible >= textLines.length) {
-      const t = setTimeout(onDone, 2800);
+    const t = setTimeout(() => setVisible(true), 100);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    // Auto-advance after reading time if no question on this scene
+    if (!scene.question) {
+      const words = scene.narrative.split(/\s+/).length;
+      const readTimeMs = Math.max(4000, words * 300 + 1500);
+      const t = setTimeout(onDone, readTimeMs);
       return () => clearTimeout(t);
     }
-    const t = setTimeout(() => setVisible((v) => v + 1), 1400);
-    return () => clearTimeout(t);
-  }, [visible, textLines.length, onDone]);
+  }, [visible, scene, onDone]);
 
   return (
     <div className="flex h-full items-center justify-center overflow-y-auto px-6 py-8 md:px-10">
       <div className="max-w-2xl space-y-5">
-        {textLines.slice(0, visible).map((line, i) => (
+        {visible && (
           <motion.p
-            key={i}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="font-display text-[19px] leading-8 text-chalk"
           >
-            {line.text}
+            {scene.narrative}
           </motion.p>
-        ))}
-        {visible < textLines.length && (
+        )}
+        {!visible && (
           <motion.span
             className="inline-block h-5 w-2 bg-chalk/60"
             animate={{ opacity: [0, 1, 0] }}
@@ -404,22 +225,6 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
 
   const currentScene = lesson.scenes[Math.min(sceneIndex, lesson.scenes.length - 1)];
 
-  const sceneLines = useMemo(
-    () =>
-      currentScene?.lines?.length
-        ? currentScene.lines
-        : [{ kind: "text" as const, text: "The chalkboard is getting ready…" }],
-    [currentScene]
-  );
-
-  // Estimate narration duration so the board doesn't advance before speaking ends.
-  // Average speaking rate is ~140 words/min = ~2.3 words/sec = ~120ms per character.
-  const narrationMinMs = useMemo(() => {
-    const text = summarizeForSpeech(sceneLines);
-    // ~120ms per character + 2s buffer for TTS latency
-    return Math.max(5000, text.length * 120 + 2000);
-  }, [sceneLines]);
-
   const questions = useMemo(
     () => [...lesson.questions].sort((a, b) => a.sceneIndex - b.sceneIndex),
     [lesson.questions]
@@ -432,7 +237,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
 
   const isPaused = !!pendingQuestion;
 
-  const onLineDone = useCallback(() => {
+  const onSceneDone = useCallback(() => {
     if (isPaused) return;
     if (sceneIndex >= lesson.scenes.length - 1) return;
     setSceneIndex((s) => s + 1);
@@ -479,7 +284,6 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
 
   useEffect(() => {
     if (!soundOn || !lesson.intro) return;
-    // Narrate the intro using whatever TTS is available (local or proxy)
     const t = setTimeout(() => say(lesson.intro), 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -490,34 +294,26 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
     prewarmedRef.current = true;
     const texts: string[] = [];
     const s = lesson.scenes[0];
-    if (s) {
-      const t = (s.lines ?? [])
-        .filter((l) => l.kind === "text" && l.text)
-        .map((l) => (l as Extract<BoardLine, { kind: "text" }>).text)
-        .join(". ")
-        .slice(0, 400);
-      if (t.trim()) texts.push(t);
+    if (s && s.narrative) {
+      texts.push(s.narrative.slice(0, 400));
     }
     prewarm(texts);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!soundOn || !sceneLines) return;
+    if (!soundOn || !currentScene) return;
     if (narratedRef.current === sceneIndex) return;
     narratedRef.current = sceneIndex;
 
-    // Use a longer delay for the first scene to allow voices to load
-    // and the board to begin rendering. For subsequent scenes use a
-    // short delay so narration starts as the new content appears.
     const delay = sceneIndex === 0 ? 1500 : 400;
 
     const t = setTimeout(() => {
-      const text = summarizeForSpeech(sceneLines);
-      if (text.trim()) say(text);
+      const text = currentScene.narrative;
+      if (text?.trim()) say(text);
     }, delay);
     return () => clearTimeout(t);
-  }, [sceneIndex, sceneLines, soundOn]);
+  }, [sceneIndex, currentScene, soundOn]);
 
   useEffect(() => {
     if (pendingQuestion && announcedRef.current !== pendingQuestion.id) {
@@ -532,6 +328,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
       if (q) {
         celebrate();
         say("Yes! You got it. Great thinking.");
+        lastSolvedSpeakRef.current = Date.now();
       }
       onSolved(qId);
     },
@@ -621,19 +418,8 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] md:grid-cols-[1fr_350px] md:grid-rows-[1fr]">
         <div className="relative min-h-0 overflow-hidden">
           <div className="board-texture absolute inset-0 bg-board" />
-          <ChalkDust />
           <div className="relative h-full p-4 md:p-6">
-            {lesson.mode === "story" ? (
-              <StoryPage key={sceneIndex} lines={sceneLines} onDone={onLineDone} />
-            ) : (
-              <Blackboard
-                key={sceneIndex}
-                lines={sceneLines}
-                onLineDone={onLineDone}
-                autoAdvanceMs={sceneIndex === 0 ? 2200 : 1800}
-                narrationMinMs={soundOn ? narrationMinMs : undefined}
-              />
-            )}
+            <StoryScene key={sceneIndex} scene={currentScene} onDone={onSceneDone} />
           </div>
           <AnimatePresence>
             {finished && !isPaused && (
@@ -714,8 +500,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
                 )}
                 {solvedCount === 0 && questions.length === 0 && (
                   <div className="rounded-xl border border-line/60 bg-surface2 px-4 py-3 text-sm text-muted">
-                    <ArrowLeft className="mr-1 inline h-3.5 w-3.5" />
-                    Keep reading, the board is telling a story.
+                    Keep reading, the story is unfolding...
                   </div>
                 )}
               </motion.div>

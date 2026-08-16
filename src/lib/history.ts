@@ -7,7 +7,7 @@ export type LessonRecord = {
   title: string;
   subject: string;
   focus: string;
-  mode: "board" | "story";
+  mode: "story";
   childName: string;
   questionsTotal: number;
   questionsCorrect: number;
