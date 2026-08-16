@@ -22,12 +22,7 @@ export type Profile = {
   onboarded: boolean;
 };
 
-export type LessonMode = "board" | "story";
-
-export type BoardLine =
-  | { kind: "text"; text: string; color?: string }
-  | { kind: "math"; latex: string }
-  | { kind: "divider" };
+export type LessonMode = "story";
 
 export type Question = {
   id: string;
@@ -39,22 +34,23 @@ export type Question = {
   accept: string[];
 };
 
-export type LessonScene = {
-  lines: BoardLine[];
+export type Scene = {
+  index: number;
+  narrative: string;
+  question?: Question | null;
 };
 
 export type Lesson = {
   id: string;
-  mode: LessonMode;
-  difficulty?: LessonDifficulty;
+  mode: "story";
   title: string;
   subject: string;
   focus: string;
   childName: string;
   intro: string;
-  scenes: LessonScene[];
-  questions: Question[];
   reflection: string;
+  scenes: Scene[];
+  questions: Question[];
 };
 
 export type LessonDifficulty = "beginner" | "intermediate" | "advanced";
