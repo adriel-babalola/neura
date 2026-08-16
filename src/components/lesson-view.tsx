@@ -168,7 +168,17 @@ function QuestionPanel({
   );
 }
 
-function StoryScene({ scene, onDone }: { scene: Scene; onDone: () => void }) {
+function StoryScene({
+  scene,
+  onDone,
+  narrationDone,
+  soundOn,
+}: {
+  scene: Scene;
+  onDone: () => void;
+  narrationDone: boolean;
+  soundOn: boolean;
+}) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -180,12 +190,22 @@ function StoryScene({ scene, onDone }: { scene: Scene; onDone: () => void }) {
     if (!visible) return;
     // Auto-advance after reading time if no question on this scene
     if (!scene.question) {
+      // When sound is on, wait for narration to finish before advancing
+      if (soundOn && !narrationDone) return;
+
+      // When sound is on and narration just finished, advance immediately
+      if (soundOn && narrationDone) {
+        const t = setTimeout(onDone, 300);
+        return () => clearTimeout(t);
+      }
+
+      // When sound is off, use word-count-based timer
       const words = scene.narrative.split(/\s+/).length;
       const readTimeMs = Math.max(4000, words * 300 + 1500);
       const t = setTimeout(onDone, readTimeMs);
       return () => clearTimeout(t);
     }
-  }, [visible, scene, onDone]);
+  }, [visible, scene, onDone, narrationDone, soundOn]);
 
   return (
     <div className="flex h-full items-center justify-center overflow-y-auto px-6 py-8 md:px-10">
@@ -222,6 +242,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
   const lastSolvedSpeakRef = useRef(0);
   const narratedRef = useRef<number | null>(null);
   const prewarmedRef = useRef(false);
+  const [narrationDone, setNarrationDone] = useState(false);
 
   const currentScene = lesson.scenes[Math.min(sceneIndex, lesson.scenes.length - 1)];
 
@@ -305,14 +326,26 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
     if (!soundOn || !currentScene) return;
     if (narratedRef.current === sceneIndex) return;
     narratedRef.current = sceneIndex;
+    setNarrationDone(false);
 
     const delay = sceneIndex === 0 ? 1500 : 400;
+    let cancelled = false;
 
     const t = setTimeout(() => {
       const text = currentScene.narrative;
-      if (text?.trim()) say(text);
+      if (text?.trim()) {
+        say(text).then(() => {
+          if (!cancelled) setNarrationDone(true);
+        });
+      } else {
+        if (!cancelled) setNarrationDone(true);
+      }
     }, delay);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+      stopSay();
+    };
   }, [sceneIndex, currentScene, soundOn]);
 
   useEffect(() => {
@@ -419,7 +452,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
         <div className="relative min-h-0 overflow-hidden">
           <div className="board-texture absolute inset-0 bg-board" />
           <div className="relative h-full p-4 md:p-6">
-            <StoryScene key={sceneIndex} scene={currentScene} onDone={onSceneDone} />
+            <StoryScene key={sceneIndex} scene={currentScene} onDone={onSceneDone} narrationDone={narrationDone} soundOn={soundOn} />
           </div>
           <AnimatePresence>
             {finished && !isPaused && (
