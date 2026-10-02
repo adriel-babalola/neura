@@ -23,59 +23,22 @@ const STAGES = [
 
 const STAGE_MS = 3400;
 
-/** Chalk smilie, matching src/app/icon.svg. */
-function ChalkSmilie() {
+/** Gentle spinning chalkboard star. */
+function ChalkSpinner() {
   return (
     <motion.svg
       viewBox="0 0 64 64"
       className="h-24 w-24"
       aria-hidden
       focusable="false"
-      animate={{ rotate: [-3, 3, -3] }}
-      transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+      animate={{ rotate: 360 }}
+      transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }}
     >
       <rect width="64" height="64" rx="14" fill="#1C2622" />
-      <circle
-        cx="32"
-        cy="33"
-        r="19"
-        fill="none"
-        stroke="#F2F0E6"
-        strokeWidth="3.4"
-      />
-      <motion.path
-        d="M22.5 30.5q3.5-5 7 0"
-        fill="none"
-        stroke="#F2F0E6"
-        strokeWidth="3.2"
-        strokeLinecap="round"
-        animate={{ scaleY: [1, 1, 0.15, 1] }}
-        style={{ transformOrigin: "26px 30.5px" }}
-        transition={{ duration: 3.4, times: [0, 0.72, 0.82, 1], repeat: Infinity }}
-      />
-      <motion.path
-        d="M34.5 30.5q3.5-5 7 0"
-        fill="none"
-        stroke="#F2F0E6"
-        strokeWidth="3.2"
-        strokeLinecap="round"
-        animate={{ scaleY: [1, 1, 0.15, 1] }}
-        style={{ transformOrigin: "38px 30.5px" }}
-        transition={{
-          duration: 3.4,
-          times: [0, 0.75, 0.85, 1],
-          repeat: Infinity,
-        }}
-      />
       <path
-        d="M23.5 39q8.5 8.5 17 0"
-        fill="none"
-        stroke="#F2F0E6"
-        strokeWidth="3.2"
-        strokeLinecap="round"
+        d="M32 12.5l4 12.2 12.8 1.8-9.6 8.4 2.6 12.6-10.8-6.2-10.8 6.2 2.6-12.6-9.6-8.4 12.8-1.8z"
+        fill="#F2C56B"
       />
-      <ellipse cx="20" cy="37.5" rx="3.4" ry="2.3" fill="#F2C56B" opacity="0.5" />
-      <ellipse cx="44" cy="37.5" rx="3.4" ry="2.3" fill="#F2C56B" opacity="0.5" />
     </motion.svg>
   );
 }
@@ -105,7 +68,7 @@ export function LessonLoader({ childName }: { childName: string }) {
       aria-live="polite"
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-canvas px-6"
     >
-      <ChalkSmilie />
+      <ChalkSpinner />
 
       <p className="mt-8 font-display text-xl font-bold tracking-tight text-ink">
         Writing {childName}&apos;s lesson

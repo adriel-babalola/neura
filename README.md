@@ -1,127 +1,80 @@
-# Neura
+﻿# Neura: Bandwidth-Optimized Semantic Streaming Engine
 
-An adaptive AI tutor that teaches children (ages 8-12) through interactive chalkboard lessons, Socratic questioning, and personalized storytelling.
+**Engineered for Resource-Constrained Education in Edge Networks**
 
-## What it does
+## The Infrastructural Problem
 
-Parents describe what their child is struggling with. Neura generates a personalized lesson that:
+High-fidelity digital education currently relies on video streaming (e.g., MP4, WebM). In many low-bandwidth regions, this overwhelms limited network capacity and creates a prohibitive financial barrier for students due to high mobile data costs.
 
-- Breaks concepts into step-by-step scenes on an animated chalkboard
-- Uses the child's interests to make abstract ideas concrete
-- Asks questions at natural pause points (not quizzes, conversations)
-- Shows common mistakes and why they happen
-- Adapts language complexity to the child's age
+## The Deep-Tech Solution (Vector-Over-Video)
+
+Neura replaces data-heavy video streaming with a bandwidth-optimized, semantics-first architecture. Instead of streaming video frames, Neura transmits highly compressed structural JSON tokens over the network. These tokens are dynamically interpreted on the user's device to render interactive animations, diagrams and narration on-device, reducing data transfer compared to equivalent video-based instruction.
+
+## Core Technical Innovations
+
+- **Token-Budgeted AI Orchestration:** Leverages prompt compression and bounded token budgets to minimize payload size and latency over constrained networks.
+- **Hybrid Speech Synthesis:** Uses a server-side expressive TTS route by default for consistent narration, with an in-browser speech fallback. The architecture is designed to support on-device Kokoro (WebGPU) for zero-cost offline narration.
+- **Client-Side Vector Rendering:** Orchestrates mathematical and scientific visuals using KaTeX and motion primitives, prioritizing fluid execution on entry-level mobile devices.
+- **Network-Agnostic Resilience:** Includes an offline-first shell, service worker caching and graceful fallbacks. If the AI route is unavailable or times out, a deterministic local fallback lesson engine ensures learning continues uninterrupted.
+- **Privacy-First by Design:** Profiles, history, and progress are stored locally in the browser. Only minimised prompts are sent to configured AI providers; no child-identifying PII is required to be transmitted.
+- **Consistent Single Narrator:** The lesson narrator is locked to a single voice profile per utterance to prevent identity switching mid-lesson, with strict one-utterance-at-a-time playback to avoid speech overlap.
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS 4
-- **Math rendering**: KaTeX (LaTeX)
-- **Animations**: Motion (Framer Motion)
-- **AI**: OpenRouter API (free tier, Llama 3.3 70B)
-- **Voice**: Server-proxied TTS (no client-side API keys)
-- **Deployment**: Vercel
+- **Framework:** Next.js / React (TypeScript)
+- **AI Orchestration:** OpenRouter (configurable)
+- **Speech:** OpenRouter TTS with browser SpeechSynthesis fallback; Kokoro support is browser-side/capability-gated
+- **Visual Engine:** Framer Motion & KaTeX
+- **Styling:** Tailwind CSS
+- **Storage:** Browser localStorage (client-side only)
 
-## Getting Started
+## Local Setup & Installation
 
-```bash
-git clone https://github.com/adriel-babalola/neura.git
-cd neura
+### Prerequisites
+
+- Node.js 20+
+- npm
+
+### Installation
+
+`ash
 npm install
-```
+`
 
-Create a `.env.local` file:
+### Environment
 
-```env
-OPENROUTER_API_KEY=sk-or-v1-your-key-here
-```
+Copy .env.example to .env.local and configure the required keys:
 
-Get a free key at [openrouter.ai/keys](https://openrouter.ai/keys) (no credit card required).
+`ash
+cp .env.example .env.local
+`
 
-```bash
+Key variables:
+
+- OPENROUTER_API_KEY (optional): Required for AI lesson generation and cloud TTS. If omitted, the app falls back to the local deterministic lesson engine.
+- NEXT_PUBLIC_SITE_URL (optional)
+
+### Development
+
+`ash
 npm run dev
-```
+`
 
-Open [http://localhost:3000](http://localhost:3000).
+### Build & Production
 
-## Project Structure
+`ash
+npm run build
+npm start
+`
 
-```
-src/
-  app/
-    page.tsx              # Landing page
-    signin/page.tsx       # Role selection (parent/student)
-    onboarding/page.tsx   # Child profile setup
-    parent/page.tsx       # Parent dashboard, lesson creation
-    child/latest/page.tsx # Student lesson view
-    api/
-      generate-lesson/    # AI lesson generation endpoint
-      tts/                # Narration proxy (tone-routed, private cache)
-      edge-ai/            # Server-only short explanation proxy
-  components/
-    lesson-view.tsx       # Full lesson player with questions
-    animated-math-board.tsx # Semantic SVG board from model-authored strokes
-    offline-banner.tsx    # Connectivity status for children
-  lib/
-    lesson-generator.ts   # Provider chain with retries (server-only)
-    lesson-json.ts        # Model chain, prompts, JSON parsing
-    lesson-normalize.ts   # Repairs malformed model output
-    openrouter-tts.ts     # Cloud narration (server-only)
-    tts-voice.ts          # Tone -> model/voice routing
-    audio-format.ts       # PCM -> WAV, chunk joining
-    say.ts                # Voice orchestrator (cloud first, browser fallback)
-    speech-text.ts        # LaTeX verbalisation and chunking
-    api-client.ts         # Server-routed client, never holds a key
-    types.ts              # TypeScript interfaces
-    fallback.ts           # Offline fallback lesson
-    edge-fallback.ts      # Normalized offline lesson
-    history.ts            # Lesson history (localStorage, local dates)
-    mastery.ts            # Aggregate learner model for adaptive prompts
-```
+### Quality Checks
 
-## How Lessons Work
+`ash
+npm run typecheck
+npm run lint
+npm run test
+`
 
-1. Parent fills in subject, struggle, and context
-2. AI generates a structured lesson (5-8 scenes, 4-5 questions)
-3. Each scene appears on an animated chalkboard with:
-   - Text lines (with chalk styling and color coding)
-   - LaTeX math (rendered by KaTeX)
-   - A semantic board drawn as SVG strokes, not an image
-   - Reading-hold timers so content stays visible
-4. Questions pause the lesson and prompt the child
-5. Hints guide reasoning without giving answers
-6. Confetti and encouragement on correct answers
-7. On finish, accuracy, hint usage, and duration are recorded locally
+## Architecture Notes
 
-Narration is routed by scene tone: Gemini speaks the story, Voxtral speaks
-the emotional beats. LaTeX is verbalised for speech and stripped from the
-caption so the child never hears markup.
-
-## Environment Variables
-
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `OPENROUTER_API_KEY` | Yes | Lesson generation **and** narration |
-| `NEURA_LLM_BASE_URL` / `NEURA_LLM_API_KEY` | No | Self-hosted OpenAI-compatible backend |
-| `GROQ_API_KEY` | No | Optional extra generation fallback |
-| `GEMINI_API_KEY` | No | Optional extra generation fallback |
-| `NEURA_TTS_MODE` | No | `auto` (default), `expressive`, `standard`, `budget` |
-
-The API key is only read on the server. The browser calls `/api/*` and never
-sees a key. Narration responses are `private, no-store`; repeat requests are
-served from a short in-memory cache on the server.
-
-See `.env.example` for the full list.
-
-## Development
-
-```bash
-npm run dev      # Start dev server
-npm run build    # Production build
-npm run lint     # ESLint
-```
-
-## License
-
-MIT
+Neura treats instruction as a stream of semantic operations (diagrams, equations, speech, prompts) rather than rendered video. This keeps payloads small, enables offline continuity, and preserves user privacy while remaining deployable on resource-constrained devices.

@@ -66,20 +66,8 @@ export default function SignInPage() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
+            className="mt-2"
           >
-            <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-card border border-line bg-surface2">
-              {/* Chalkboard smilie, matching the favicon. Replaced a sparkle
-                  icon, which read as generic AI-product decoration. */}
-              <svg viewBox="0 0 64 64" className="h-9 w-9" aria-hidden focusable="false">
-                <rect width="64" height="64" rx="14" fill="#1C2622" />
-                <circle cx="32" cy="33" r="19" fill="none" stroke="#F2F0E6" strokeWidth="3.4" />
-                <path d="M22.5 30.5q3.5-5 7 0" fill="none" stroke="#F2F0E6" strokeWidth="3.2" strokeLinecap="round" />
-                <path d="M34.5 30.5q3.5-5 7 0" fill="none" stroke="#F2F0E6" strokeWidth="3.2" strokeLinecap="round" />
-                <path d="M23.5 39q8.5 8.5 17 0" fill="none" stroke="#F2F0E6" strokeWidth="3.2" strokeLinecap="round" />
-                <ellipse cx="20" cy="37.5" rx="3.4" ry="2.3" fill="#F2C56B" opacity="0.5" />
-                <ellipse cx="44" cy="37.5" rx="3.4" ry="2.3" fill="#F2C56B" opacity="0.5" />
-              </svg>
-            </span>
             <PageTitle>
               Welcome to Neura<span className="text-accent">.</span>
             </PageTitle>
