@@ -26,20 +26,18 @@ const STAGE_MS = 3400;
 /** Gentle spinning chalkboard star. */
 function ChalkSpinner() {
   return (
-    <motion.svg
+    <svg
       viewBox="0 0 64 64"
       className="h-24 w-24"
       aria-hidden
       focusable="false"
-      animate={{ rotate: 360 }}
-      transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }}
     >
       <rect width="64" height="64" rx="14" fill="#1C2622" />
       <path
         d="M32 12.5l4 12.2 12.8 1.8-9.6 8.4 2.6 12.6-10.8-6.2-10.8 6.2 2.6-12.6-9.6-8.4 12.8-1.8z"
         fill="#F2C56B"
       />
-    </motion.svg>
+    </svg>
   );
 }
 

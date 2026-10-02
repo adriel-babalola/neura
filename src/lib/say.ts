@@ -174,6 +174,7 @@ async function speakJob(job: Job): Promise<void> {
   if (!isSpeechEnabled()) return;
 
   log("falling back to browser voice");
+  stopLocal(); // ensure no browser TTS is in flight
   await speakLocalAwait(spoken).catch(() => undefined);
 }
 
@@ -190,12 +191,14 @@ async function drain(): Promise<void> {
       } catch (err) {
         log("narration failed:", err instanceof Error ? err.message : err);
       }
-      if (jobEpoch !== epoch) {
-        // Interrupted. Drop whatever the caller had queued behind it.
-        queue.length = 0;
-      }
-      job.resolve();
-    }
+  if (jobEpoch !== epoch) {
+    // Interrupted. Drop whatever the caller had queued behind it.
+    queue.length = 0;
+  }
+  job.resolve();
+  // Silence local TTS after each utterance to prevent bleed
+  stopLocal();
+}
   })();
   try {
     await draining;
@@ -234,8 +237,8 @@ export function say(text: string, tone?: string): Promise<void> {
 export function stopSay() {
   epoch++;
   queue.length = 0;
-  stopLocal();
   stopAudio();
+  stopLocal();
 }
 
 /**
