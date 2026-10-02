@@ -1,130 +1,109 @@
 import { NextResponse } from "next/server";
-import { synthesize as groqSynthesize } from "@/lib/groq-tts";
-
-const MAX_TEXT = 1000;
+import { synthesizeSpeech } from "@/lib/openrouter-tts";
+import { concatAudio } from "@/lib/audio-format";
+import { parseVoiceMode, resolveVoice } from "@/lib/tts-voice";
+import { toSpeechText } from "@/lib/speech-text";
 
 /**
- * TTS API Route.
+ * Narration API route.
  *
- * Strategy 1: Groq Orpheus neural voice (if GROQ_API_KEY is set).
- * Strategy 2: Google Translate TTS proxy (free, no key, robotic fallback).
- * We proxy server-side to avoid CORS issues in the browser.
+ * Primary path is OpenRouter's speech endpoint, which means the same API key
+ * used for lesson generation also produces the voice. Model and voice are
+ * chosen from the scene tone so question and celebration beats are delivered
+ * differently from narration.
+ *
+ * There is deliberately no third-party scrape here. The previous Google
+ * Translate fallback was the source of the robotic voice, and the client
+ * already has a browser speech fallback that needs no network at all.
+ *
+ * Input is LaTeX-verbalised server-side, so even if a caller sends raw markup
+ * the narration stays comprehensible.
  */
+
+const MAX_INPUT = 4000;
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
-  let text = "";
+  let raw = "";
+  let tone: string | undefined;
+  let mode: string | undefined;
 
   try {
     const body = await request.json();
-    if (typeof body.text === "string") text = body.text.trim().slice(0, MAX_TEXT);
+    if (typeof body?.text === "string") raw = body.text.slice(0, MAX_INPUT);
+    if (typeof body?.tone === "string") tone = body.tone.slice(0, 20);
+    if (typeof body?.mode === "string") mode = body.mode.slice(0, 20);
   } catch {
-    return NextResponse.json({ error: "Malformed JSON body" }, { status: 400 });
+    return NextResponse.json({ error: "MALFORMED_BODY" }, { status: 400 });
   }
 
-  if (!text) {
-    return NextResponse.json({ error: "Missing text" }, { status: 400 });
+  if (!raw.trim()) {
+    return NextResponse.json({ error: "MISSING_TEXT" }, { status: 400 });
   }
 
-  // Strategy 1: Groq Orpheus neural voice
+  const chunks = toSpeechText(raw, 900);
+  if (chunks.length === 0) {
+    return NextResponse.json({ error: "EMPTY_SPEECH" }, { status: 400 });
+  }
+
+  const voiceMode = parseVoiceMode(mode);
+
+  // Resolve the voice once for the whole utterance.
+  //
+  // Providers return different containers: Gemini TTS only speaks raw PCM (wrapped
+  // here as WAV), the others return MP3. If one chunk times out and silently
+  // falls back to a different model, joining WAV payloads with MP3 frames yields
+  // a file that starts with a RIFF header and then plays garbage. Pinning the
+  // profile keeps every chunk in one container, and a mismatch is then detected
+  // and failed rather than served as noise.
+  const profile = resolveVoice(tone, voiceMode);
+
+  const audioParts: ArrayBuffer[] = [];
+  let contentType = "";
+  let model = "";
+  let voice = "";
+
   try {
-    const { audio, contentType } = await groqSynthesize(text, {
-      voice: "diana",
-      responseFormat: "wav",
-    });
-    if (audio && audio.length > 0) {
-      return new NextResponse(new Uint8Array(audio), {
-        headers: {
-          "Content-Type": contentType,
-          "Cache-Control": "public, max-age=86400",
-        },
-      });
+    for (const chunk of chunks) {
+      const result = await synthesizeSpeech(chunk, { mode: voiceMode, profile });
+      if (contentType && result.contentType !== contentType) {
+        throw new Error(
+          `TTS_MIXED_FORMATS: ${model} returned ${contentType} but a chunk returned ${result.contentType}`
+        );
+      }
+      audioParts.push(result.audio);
+      contentType = result.contentType;
+      model = result.model;
+      voice = result.voice;
     }
-    // Empty audio buffer - fall through to fallback
   } catch (err) {
-    // Log and fall through to Google Translate proxy
-    console.warn(
-      "[tts] Groq failed:",
-      err instanceof Error ? err.message : String(err)
-    );
-  }
-
-  // Strategy 2: Google Translate TTS proxy (robotic but always available)
-  // Google Translate has a ~200 char limit per request, so chunk if needed.
-  const chunks = chunkForGoogleTTS(text, 180);
-  const audioChunks: ArrayBuffer[] = [];
-
-  for (const chunk of chunks) {
-    const encoded = encodeURIComponent(chunk);
-    const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encoded}`;
-
-    try {
-      const res = await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          Referer: "https://translate.google.com/",
-        },
-      });
-
-      if (!res.ok) {
-        console.warn(`[tts] Google TTS chunk failed: ${res.status}`);
-        continue;
-      }
-
-      const buffer = await res.arrayBuffer();
-      if (buffer.byteLength > 0) {
-        audioChunks.push(buffer);
-      }
-    } catch (err) {
-      console.warn(
-        "[tts] Google TTS error:",
-        err instanceof Error ? err.message : String(err)
-      );
-    }
-  }
-
-  if (audioChunks.length === 0) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[tts] synthesis failed:", message);
     return NextResponse.json(
-      { error: "TTS_FAILED", detail: "All TTS strategies failed" },
+      { error: "TTS_FAILED", detail: message.slice(0, 300) },
       { status: 502 }
     );
   }
 
-  // Concatenate audio chunks
-  const totalLen = audioChunks.reduce((sum, buf) => sum + buf.byteLength, 0);
-  const combined = new Uint8Array(totalLen);
-  let offset = 0;
-  for (const buf of audioChunks) {
-    combined.set(new Uint8Array(buf), offset);
-    offset += buf.byteLength;
+  if (audioParts.length === 0) {
+    return NextResponse.json({ error: "TTS_EMPTY" }, { status: 502 });
   }
+
+  const combined = concatAudio(audioParts, contentType);
 
   return new NextResponse(combined, {
     headers: {
-      "Content-Type": "audio/mpeg",
-      "Cache-Control": "public, max-age=86400",
+      "Content-Type": contentType,
+      // Narration contains the child's name, so it must never reach a shared
+      // cache. Deterministic per model/voice/text, but only the browser and the
+      // server's own in-memory cache should reuse it. See readCache() in
+      // openrouter-tts.ts for the actual reuse layer.
+      "Cache-Control": "private, no-store",
+      "X-Neura-Tts-Model": model,
+      "X-Neura-Tts-Voice": voice,
     },
   });
 }
 
-/**
- * Chunk text for Google Translate TTS which has a ~200 char limit.
- * Splits on sentence boundaries.
- */
-function chunkForGoogleTTS(text: string, maxLen: number): string[] {
-  if (text.length <= maxLen) return [text];
-  const chunks: string[] = [];
-  let remaining = text;
-  while (remaining.length > 0) {
-    if (remaining.length <= maxLen) {
-      chunks.push(remaining);
-      break;
-    }
-    let splitAt = remaining.lastIndexOf(". ", maxLen);
-    if (splitAt === -1 || splitAt < 20) splitAt = remaining.lastIndexOf(", ", maxLen);
-    if (splitAt === -1 || splitAt < 20) splitAt = remaining.lastIndexOf(" ", maxLen);
-    if (splitAt === -1 || splitAt < 20) splitAt = maxLen;
-    chunks.push(remaining.slice(0, splitAt + 1).trim());
-    remaining = remaining.slice(splitAt + 1).trim();
-  }
-  return chunks.filter((c) => c.length > 0);
-}

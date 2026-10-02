@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -18,10 +18,10 @@ import {
   Lightbulb,
   LogOut,
   Plus,
+  PencilLine,
   Presentation,
   Puzzle,
   Settings,
-  Sparkles,
   Star,
   Target,
   Timer,
@@ -29,19 +29,21 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
-import { Button, Card, Logo, Textarea } from "@/components/ui";
+import { Avatar, Button, Card, ChalkDivider, Logo, SectionTitle, Textarea } from "@/components/ui";
+import { LessonLoader } from "@/components/lesson-loader";
 import { InsightsPanel } from "@/components/insights-panel";
 import { useProfile } from "@/lib/profile";
 import { useLessonStore } from "@/lib/lesson-store";
-import { useLessonHistory } from "@/lib/history";
+import { useLessonHistory, clearLessonHistory, dateKey } from "@/lib/history";
+import { buildMasterySignal } from "@/lib/mastery";
 import { useMounted } from "@/lib/use-mounted";
 import type { Lesson, LessonDifficulty } from "@/lib/types";
 
 const SUBJECTS = [
-  { label: "Math", icon: Calculator, color: "text-blue-400" },
-  { label: "English", icon: BookOpen, color: "text-emerald-400" },
-  { label: "Logic", icon: Puzzle, color: "text-purple-400" },
-  { label: "Science", icon: FlaskConical, color: "text-amber-400" },
+  { label: "Math", icon: Calculator, color: "text-chalk-b" },
+  { label: "English", icon: BookOpen, color: "text-success" },
+  { label: "Logic", icon: Puzzle, color: "text-chalk-p" },
+  { label: "Science", icon: FlaskConical, color: "text-chalk-y" },
 ];
 
 const SUGGESTIONS = [
@@ -78,12 +80,12 @@ type BadgeDef = {
 };
 
 const BADGES: BadgeDef[] = [
-  { id: "first", label: "First Lesson", icon: Star, color: "text-amber-400", check: (s) => s.totalLessons >= 1 },
+  { id: "first", label: "First Lesson", icon: Star, color: "text-chalk-y", check: (s) => s.totalLessons >= 1 },
   { id: "streak3", label: "3-Day Streak", icon: Flame, color: "text-orange-400", check: (s) => s.streak >= 3 },
-  { id: "streak5", label: "5-Day Streak", icon: Flame, color: "text-red-400", check: (s) => s.streak >= 5 },
-  { id: "ten", label: "10 Lessons", icon: GraduationCap, color: "text-blue-400", check: (s) => s.totalLessons >= 10 },
-  { id: "explorer", label: "Subject Explorer", icon: Puzzle, color: "text-purple-400", check: (s) => s.subjects >= 3 },
-  { id: "perfect", label: "Perfect Score", icon: Trophy, color: "text-emerald-400", check: (s) => s.hasPerfect },
+  { id: "streak5", label: "5-Day Streak", icon: Flame, color: "text-warn", check: (s) => s.streak >= 5 },
+  { id: "ten", label: "10 Lessons", icon: GraduationCap, color: "text-chalk-b", check: (s) => s.totalLessons >= 10 },
+  { id: "explorer", label: "Subject Explorer", icon: Puzzle, color: "text-chalk-p", check: (s) => s.subjects >= 3 },
+  { id: "perfect", label: "Perfect Score", icon: Trophy, color: "text-success", check: (s) => s.hasPerfect },
 ];
 
 const DIFFICULTY_OPTIONS: { value: LessonDifficulty; label: string; desc: string }[] = [
@@ -109,24 +111,30 @@ function StatCard({
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative overflow-hidden rounded-2xl border p-5 transition-all hover:shadow-md ${
-        accent
-          ? "border-accent/40 bg-gradient-to-br from-accent-dim to-surface"
-          : "border-line bg-surface"
+      className={`relative overflow-hidden rounded-card border p-5 card-hover ${
+        accent ? "border-accent/40 bg-accent-dim" : "border-line bg-surface"
       }`}
     >
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted">{label}</p>
-          <p className="font-display text-2xl font-bold tracking-tight text-ink">{value}</p>
+          <p className="font-display text-[11px] font-bold uppercase tracking-[0.14em] text-muted">
+            {label}
+          </p>
+          <p
+            className={`font-display text-2xl font-extrabold tabular-nums tracking-tight ${
+              accent ? "text-accent" : "text-ink"
+            }`}
+          >
+            {value}
+          </p>
           {sub && <p className="text-xs text-muted">{sub}</p>}
         </div>
         <span
-          className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+          className={`flex h-9 w-9 items-center justify-center rounded-chip ${
             accent ? "bg-accent/15 text-accent" : "bg-surface2 text-muted"
           }`}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="h-4.5 w-4.5" />
         </span>
       </div>
       {accent && (
@@ -232,8 +240,8 @@ function LessonHistoryItem({
 }) {
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
   return (
-    <div className="group flex items-center gap-4 rounded-xl border border-line bg-surface p-4 transition-all hover:border-accent/30 hover:bg-surface-hover">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-dim">
+    <div className="group flex items-center gap-4 rounded-control border border-line bg-surface p-4 transition-all hover:border-accent/30 hover:bg-surface-hover">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-accent-dim">
         <GraduationCap className="h-5 w-5 text-accent" />
       </div>
       <div className="min-w-0 flex-1">
@@ -257,6 +265,7 @@ export default function ParentPage() {
   const mounted = useMounted();
   const { saveLesson } = useLessonStore();
   const { history, stats } = useLessonHistory();
+  const [confirmingReset, setConfirmingReset] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [subject, setSubject] = useState("");
   const [struggle, setStruggle] = useState("");
@@ -266,16 +275,29 @@ export default function ParentPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
 
-  // Motivational message rotation based on current minute
-  const motivationalMsg = useMemo(() => {
+  // Motivational message, rotated on the minute.
+// Lives in state rather than a useMemo because reading the clock during render
+// is impure; as a memo with no dependencies it was also computed once and then
+// never updated, which was the actual bug.
+const [motivationalMsg, setMotivationalMsg] = useState(MOTIVATIONAL_MESSAGES[0]);
+useEffect(() => {
+  const tick = () => {
     const idx = Math.floor(Date.now() / 60000) % MOTIVATIONAL_MESSAGES.length;
-    return MOTIVATIONAL_MESSAGES[idx];
-  }, []);
+    setMotivationalMsg(MOTIVATIONAL_MESSAGES[idx]);
+  };
+  tick();
+  const id = setInterval(tick, 60_000);
+  return () => clearInterval(id);
+}, []);
 
   // Today's lessons
+  //
+  // dateKey() is used on both sides: completedAt is a UTC ISO timestamp, so
+  // slicing it with toISOString() would compare UTC dates and lose lessons
+  // finished in the evening locally for users ahead of UTC.
   const todayLessons = useMemo(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    return history.filter((r) => r.completedAt.slice(0, 10) === todayStr);
+    const todayStr = dateKey();
+    return history.filter((r) => dateKey(new Date(r.completedAt)) === todayStr);
   }, [history]);
 
   // Today's time
@@ -288,13 +310,20 @@ export default function ParentPage() {
     return history.some((r) => r.questionsTotal > 0 && r.questionsCorrect === r.questionsTotal);
   }, [history]);
 
-  // Achievement badges
-  const badgeData = useMemo(() => ({
-    totalLessons: stats.totalLessons,
-    streak: stats.streak.current,
-    subjects: Object.keys(stats.subjectBreakdown).length,
+  // Achievement badges. Destructured to primitives so the dependency list
+// matches what the compiler can actually track.
+const { totalLessons, subjectBreakdown, streak } = stats;
+const streakCurrent = streak.current;
+const subjectsExplored = Object.keys(subjectBreakdown).length;
+const badgeData = useMemo(
+  () => ({
+    totalLessons,
+    streak: streakCurrent,
+    subjects: subjectsExplored,
     hasPerfect: hasPerfectScore,
-  }), [stats, hasPerfectScore]);
+  }),
+  [totalLessons, streakCurrent, subjectsExplored, hasPerfectScore]
+);
 
   // Recommended next subject
   const recommendedNext = useMemo(() => {
@@ -349,16 +378,21 @@ export default function ParentPage() {
     setGenerating(true);
     setError("");
     try {
+      // Close the loop: recent accuracy and recurring struggle decide how hard
+      // this lesson goes and what it opens with. Only aggregates are sent.
+      const signal = buildMasterySignal(history, stats, difficulty);
+      const focus = struggle.trim();
+
       const res = await fetch("/api/generate-lesson", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           child,
           subject,
-          struggle: struggle.trim(),
-          context: context.trim(),
+          struggle: focus,
+          context: [signal.context, context.trim()].filter(Boolean).join(" "),
           mode,
-          difficulty,
+          difficulty: signal.difficulty,
         }),
       });
       const data = await res.json();
@@ -374,15 +408,36 @@ export default function ParentPage() {
     }
   };
 
+  /**
+   * First-try accuracy.
+   *
+   * Deliberately excludes questions answered after a hint. Counting those would
+   * report a child as mastering something the tutor had to walk them through,
+   * which is the opposite of what a progress number is for.
+   */
   const accuracy =
     stats.totalQuestions > 0
-      ? Math.round((stats.totalCorrect / stats.totalQuestions) * 100)
+      ? Math.round((stats.firstTryCorrect / stats.totalQuestions) * 100)
       : 0;
+
+  const hintedTotal = stats.totalQuestions - stats.firstTryCorrect;
+
+  /** Wipes the profile and every lesson record. Guarded because it is not undoable. */
+  const resetEverything = () => {
+    reset();
+    clearLessonHistory();
+    setConfirmingReset(false);
+    router.push("/");
+  };
 
   const estimatedDuration = "~8-12 min";
 
   return (
     <div className="flex h-screen bg-canvas overflow-hidden">
+      {/* Opaque full-screen loader while a lesson is written. Fixed position, so
+          it covers the whole viewport including the sidebar. */}
+      {generating && <LessonLoader childName={child.name} />}
+
       {/* Sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-surface lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-line px-6">
@@ -390,7 +445,7 @@ export default function ParentPage() {
         </div>
 
         <div className="border-b border-line px-4 py-4">
-          <div className="flex items-center gap-3 rounded-xl bg-accent-dim/50 p-3">
+          <div className="flex items-center gap-3 rounded-control bg-accent-dim/50 p-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent font-display text-sm font-bold text-white">
               {child.name.slice(0, 1).toUpperCase()}
             </span>
@@ -413,7 +468,7 @@ export default function ParentPage() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                className={`flex w-full cursor-pointer items-center gap-3 rounded-control px-4 py-3 text-sm font-medium transition-all ${
                   active
                     ? "bg-accent-dim text-ink shadow-sm"
                     : "text-muted hover:bg-surface2 hover:text-ink"
@@ -432,7 +487,7 @@ export default function ParentPage() {
         </nav>
 
         <div className="border-t border-line px-4 py-4">
-          <div className="flex items-center gap-3 rounded-xl border border-line bg-surface2 px-4 py-3">
+          <div className="flex items-center gap-3 rounded-control border border-line bg-surface2 px-4 py-3">
             <Flame className="h-5 w-5 text-accent" />
             <div>
               <p className="font-display text-sm font-bold text-ink">
@@ -451,7 +506,7 @@ export default function ParentPage() {
               reset();
               router.push("/");
             }}
-            className="flex w-full cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm text-muted transition-colors hover:bg-surface2 hover:text-ink"
+            className="flex w-full cursor-pointer items-center gap-2 rounded-control px-4 py-2.5 text-sm text-muted transition-colors hover:bg-surface2 hover:text-ink"
           >
             <LogOut className="h-4 w-4" />
             Sign out
@@ -461,7 +516,7 @@ export default function ParentPage() {
 
       {/* Main Content */}
       <main className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-line bg-surface/50 px-6 backdrop-blur-sm">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-line bg-surface px-6 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <div className="lg:hidden">
               <Logo />
@@ -481,7 +536,7 @@ export default function ParentPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-1 items-center gap-3">
             <div className="flex items-center gap-1 lg:hidden">
               {NAV_ITEMS.slice(0, 3).map((item) => {
                 const Icon = item.icon;
@@ -489,7 +544,7 @@ export default function ParentPage() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg transition-colors ${
+                    className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-chip transition-colors ${
                       activeTab === item.id
                         ? "bg-accent-dim text-accent"
                         : "text-muted hover:text-ink"
@@ -502,10 +557,10 @@ export default function ParentPage() {
             </div>
             <button
               onClick={() => setActiveTab("create")}
-              className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-white shadow-sm shadow-accent/20 transition-all hover:brightness-[1.06] active:scale-[0.98]"
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-chip bg-accent px-3 text-xs font-medium text-white shadow-sm shadow-accent/20 transition-all hover:brightness-[1.06] active:scale-[0.98] lg:ml-auto"
             >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">New Lesson</span>
+              <Plus className="h-3.5 w-3.5" />
+              New Lesson
             </button>
           </div>
         </header>
@@ -525,17 +580,21 @@ export default function ParentPage() {
                 <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                   <StatCard icon={Flame} label="Day Streak" value={stats.streak.current} sub={`Best: ${stats.streak.longest}`} accent />
                   <StatCard icon={GraduationCap} label="Lessons" value={stats.totalLessons} sub="Completed" />
-                  <StatCard icon={Target} label="Accuracy" value={`${accuracy}%`} sub={`${stats.totalCorrect}/${stats.totalQuestions} correct`} />
+                  <StatCard icon={Target} label="Accuracy" value={`${accuracy}%`} sub={`${stats.firstTryCorrect}/${stats.totalQuestions} first try`} />
                   <StatCard icon={Trophy} label="Subjects" value={Object.keys(stats.subjectBreakdown).length} sub="Explored" />
                 </div>
 
                 {/* Two column layout */}
                 <div className="grid gap-6 lg:grid-cols-3">
                   <Card className="col-span-2 p-6">
-                    <div className="mb-4 flex items-center justify-between">
-                      <div>
+                    <div className="mb-4 flex items-start justify-between">
+                      <div className="min-w-0 flex-1 pr-4">
                         <h3 className="font-display text-sm font-bold text-ink">Weekly Activity</h3>
-                        <p className="text-xs text-muted">Lessons completed this week</p>
+                        {/* Hand-drawn rule under the section title: the one place
+                            the chalk texture earns its keep, and it only shows
+                            up in parent mode where the paper palette fits. */}
+                        <ChalkDivider className="mt-2 max-w-[160px]" color="var(--accent)" />
+                        <p className="mt-2 text-xs text-muted">Lessons completed this week</p>
                       </div>
                       <span className="flex items-center gap-1 rounded-full bg-accent-dim px-2.5 py-1 text-xs font-medium text-accent">
                         <TrendingUp className="h-3 w-3" />
@@ -548,16 +607,16 @@ export default function ParentPage() {
                   <Card className="p-6">
                     <h3 className="mb-4 font-display text-sm font-bold text-ink">Quick Actions</h3>
                     <div className="space-y-2">
-                      <button onClick={() => setActiveTab("create")} className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface2 p-3 text-left transition-all hover:border-accent/40 hover:bg-accent-dim/30">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-accent"><Sparkles className="h-4 w-4" /></span>
+                      <button onClick={() => setActiveTab("create")} className="flex w-full cursor-pointer items-center gap-3 rounded-control border border-line bg-surface2 p-3 text-left transition-all hover:border-accent/40 hover:bg-accent-dim/30">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-chip bg-accent/15 text-accent"><BookOpen className="h-4 w-4" /></span>
                         <div><p className="text-sm font-medium text-ink">Generate Lesson</p><p className="text-[11px] text-muted">AI-powered tutoring</p></div>
                       </button>
-                      <button onClick={() => setActiveTab("progress")} className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface2 p-3 text-left transition-all hover:border-accent/40 hover:bg-accent-dim/30">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-500"><TrendingUp className="h-4 w-4" /></span>
+                      <button onClick={() => setActiveTab("progress")} className="flex w-full cursor-pointer items-center gap-3 rounded-control border border-line bg-surface2 p-3 text-left transition-all hover:border-accent/40 hover:bg-accent-dim/30">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-chip bg-success/10 text-success"><TrendingUp className="h-4 w-4" /></span>
                         <div><p className="text-sm font-medium text-ink">View Progress</p><p className="text-[11px] text-muted">Track improvements</p></div>
                       </button>
-                      <button onClick={() => router.push("/child/latest")} className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface2 p-3 text-left transition-all hover:border-accent/40 hover:bg-accent-dim/30">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/15 text-purple-500"><Presentation className="h-4 w-4" /></span>
+                      <button onClick={() => router.push("/child/latest")} className="flex w-full cursor-pointer items-center gap-3 rounded-control border border-line bg-surface2 p-3 text-left transition-all hover:border-accent/40 hover:bg-accent-dim/30">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-chip bg-accent-dim text-accent"><Presentation className="h-4 w-4" /></span>
                         <div><p className="text-sm font-medium text-ink">Latest Lesson</p><p className="text-[11px] text-muted">Continue learning</p></div>
                       </button>
                     </div>
@@ -573,7 +632,7 @@ export default function ParentPage() {
                       <h3 className="font-display text-sm font-bold text-ink">Today&apos;s Learning</h3>
                     </div>
                     <DailyGoalRing completed={todayLessons.length} goal={3} />
-                    <div className="mt-4 flex items-center gap-2 rounded-lg bg-surface2 px-3 py-2">
+                    <div className="mt-4 flex items-center gap-2 rounded-chip bg-surface2 px-3 py-2">
                       <Timer className="h-4 w-4 text-muted" />
                       <span className="text-xs text-muted">
                         {todayTimeMinutes > 0 ? `${todayTimeMinutes} min spent learning today` : "No time logged yet today"}
@@ -596,16 +655,16 @@ export default function ParentPage() {
                   {/* Recommended Next */}
                   <Card className="p-6">
                     <div className="mb-4 flex items-center gap-2">
-                      <Lightbulb className="h-4 w-4 text-amber-400" />
+                      <Lightbulb className="h-4 w-4 text-chalk-y" />
                       <h3 className="font-display text-sm font-bold text-ink">Recommended Next</h3>
                     </div>
-                    <div className="flex items-center gap-3 rounded-xl border border-line bg-surface2 p-3">
+                    <div className="flex items-center gap-3 rounded-control border border-line bg-surface2 p-3">
                       {(() => {
                         const s = SUBJECTS.find((x) => x.label === recommendedNext);
                         const Icon = s?.icon || BookOpen;
                         return (
                           <>
-                            <span className={`flex h-10 w-10 items-center justify-center rounded-xl bg-surface ${s?.color || "text-accent"}`}>
+                            <span className={`flex h-10 w-10 items-center justify-center rounded-control bg-surface ${s?.color || "text-accent"}`}>
                               <Icon className="h-5 w-5" />
                             </span>
                             <div className="flex-1">
@@ -642,7 +701,7 @@ export default function ParentPage() {
                           key={badge.id}
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className={`flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-all ${
+                          className={`flex flex-col items-center gap-2 rounded-control border p-3 text-center transition-all ${
                             earned ? "border-accent/30 bg-accent-dim/50" : "border-line bg-surface2 opacity-50"
                           }`}
                         >
@@ -682,7 +741,7 @@ export default function ParentPage() {
                     </div>
                   ) : (
                     <Card className="flex flex-col items-center justify-center p-8 text-center">
-                      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-dim">
+                      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-card bg-accent-dim">
                         <GraduationCap className="h-6 w-6 text-accent" />
                       </div>
                       <p className="font-display text-sm font-semibold text-ink">No lessons yet</p>
@@ -727,7 +786,7 @@ export default function ParentPage() {
                             <button
                               key={s.label}
                               onClick={() => setSubject(s.label)}
-                              className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-4 text-sm font-medium transition-all cursor-pointer ${
+                              className={`flex flex-col items-center gap-2 rounded-control border px-3 py-4 text-sm font-medium transition-all cursor-pointer ${
                                 subject === s.label
                                   ? "border-accent bg-gradient-to-br from-accent-dim to-surface text-ink shadow-sm"
                                   : "border-line bg-surface2 text-muted hover:border-accent/40 hover:bg-surface-hover"
@@ -780,7 +839,7 @@ export default function ParentPage() {
                       <motion.p
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-600"
+                        className="rounded-control border border-warn/25 bg-warn/10 px-4 py-3 text-sm text-warn"
                       >
                         {error}
                       </motion.p>
@@ -799,7 +858,7 @@ export default function ParentPage() {
                         </>
                       ) : (
                         <>
-                          <Sparkles className="h-4 w-4" />
+                          <PencilLine className="h-4 w-4" />
                           Build {child.name}&apos;s lesson
                         </>
                       )}
@@ -834,7 +893,7 @@ export default function ParentPage() {
                     {/* Estimated Duration */}
                     <Card className="p-5">
                       <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-accent">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-chip bg-accent/15 text-accent">
                           <Clock className="h-4 w-4" />
                         </span>
                         <div>
@@ -884,7 +943,7 @@ export default function ParentPage() {
                             <button
                               key={i}
                               onClick={() => setStruggle(s)}
-                              className="flex w-full items-center gap-2 rounded-lg border border-line bg-surface2 px-3 py-2.5 text-left text-xs text-muted transition-all hover:border-accent/40 hover:bg-accent-dim/30 hover:text-ink cursor-pointer"
+                              className="flex w-full items-center gap-2 rounded-chip border border-line bg-surface2 px-3 py-2.5 text-left text-xs text-muted transition-all hover:border-accent/40 hover:bg-accent-dim/30 hover:text-ink cursor-pointer"
                             >
                               <Clock className="h-3.5 w-3.5 shrink-0 text-muted" />
                               <span className="truncate">{s}</span>
@@ -926,16 +985,20 @@ export default function ParentPage() {
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Card className="p-5">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent"><Target className="h-5 w-5" /></span>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-control bg-accent/15 text-accent"><Target className="h-5 w-5" /></span>
                       <div>
                         <p className="text-xs text-muted">Overall Accuracy</p>
                         <p className="font-display text-xl font-bold text-ink">{accuracy}%</p>
+                        <p className="text-[11px] text-muted">
+                          {stats.firstTryCorrect} of {stats.totalQuestions} first try
+                          {hintedTotal > 0 ? `, ${hintedTotal} needed a hint` : ""}
+                        </p>
                       </div>
                     </div>
                   </Card>
                   <Card className="p-5">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-500"><Clock className="h-5 w-5" /></span>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-control bg-success/10 text-success"><Clock className="h-5 w-5" /></span>
                       <div>
                         <p className="text-xs text-muted">Total Questions</p>
                         <p className="font-display text-xl font-bold text-ink">{stats.totalQuestions}</p>
@@ -944,7 +1007,7 @@ export default function ParentPage() {
                   </Card>
                   <Card className="p-5">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500"><Flame className="h-5 w-5" /></span>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-control bg-warn/10 text-warn"><Flame className="h-5 w-5" /></span>
                       <div>
                         <p className="text-xs text-muted">Longest Streak</p>
                         <p className="font-display text-xl font-bold text-ink">{stats.streak.longest} days</p>
@@ -1017,12 +1080,10 @@ export default function ParentPage() {
                 className="mx-auto w-full max-w-2xl space-y-6 px-6 py-8"
               >
                 <Card className="p-6">
-                  <h3 className="mb-4 font-display text-lg font-bold text-ink">Child Profile</h3>
+                  <SectionTitle className="mb-4">Child Profile</SectionTitle>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4 rounded-xl bg-surface2 p-4">
-                      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent font-display text-lg font-bold text-white">
-                        {child.name.slice(0, 1).toUpperCase()}
-                      </span>
+                    <div className="flex items-center gap-4 rounded-control bg-surface2 p-4">
+                      <Avatar name={child.name} className="h-14 w-14 text-base" />
                       <div>
                         <p className="font-display text-lg font-bold text-ink">{child.name}</p>
                         <p className="text-sm text-muted">Age {child.age} &middot; Loves {child.interest}</p>
@@ -1033,14 +1094,49 @@ export default function ParentPage() {
                       <Button variant="outline" onClick={() => router.push("/onboarding")} className="flex-1">Edit profile</Button>
                       <Button
                         variant="ghost"
-                        onClick={() => { reset(); router.push("/"); }}
-                        className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                        onClick={() => setConfirmingReset(true)}
+                        className="text-warn hover:bg-warn/10"
                       >
                         Reset all data
                       </Button>
                     </div>
                   </div>
                 </Card>
+
+                <AnimatePresence>
+                  {confirmingReset && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="rounded-card border border-warn/30 bg-warn/10 p-6"
+                      role="alertdialog"
+                      aria-label="Confirm deleting all data"
+                    >
+                      <h3 className="font-display text-lg font-bold text-warn">
+                        Delete everything?
+                      </h3>
+                      <p className="mt-1 text-sm text-warn/80">
+                        This removes {child.name}&rsquo;s profile, all{" "}
+                        {stats.totalLessons} lesson
+                        {stats.totalLessons === 1 ? "" : "s"} and the{" "}
+                        {stats.streak.current}-day streak. It cannot be undone.
+                      </p>
+                      <div className="mt-4 flex gap-3">
+                        <Button variant="ghost" onClick={() => setConfirmingReset(false)}>
+                          Keep data
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={resetEverything}
+                          className="bg-warn text-white hover:brightness-110 hover:text-white"
+                        >
+                          Delete everything
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <Card className="p-6">
                   <h3 className="mb-2 font-display text-lg font-bold text-ink">About Neura</h3>

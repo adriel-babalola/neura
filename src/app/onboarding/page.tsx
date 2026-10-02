@@ -21,10 +21,10 @@ import {
   PawPrint,
   Palette,
   Rocket,
-  Sparkles,
   Trophy,
   User,
   UserRound,
+  UserPlus,
   Users,
   Zap,
 } from "lucide-react";
@@ -42,7 +42,7 @@ const STYLE_OPTIONS: { value: LearningStyle; label: string; icon: typeof Eye; de
 ];
 
 const INTEREST_OPTIONS: { label: string; icon: typeof Rocket }[] = [
-  { label: "Superheroes", icon: Sparkles },
+  { label: "Superheroes", icon: Zap },
   { label: "Dinosaurs", icon: PawPrint },
   { label: "Sports", icon: Trophy },
   { label: "Space", icon: Rocket },
@@ -138,7 +138,7 @@ export default function OnboardingPage() {
         <div className="flex items-center justify-between">
           <button
             onClick={back}
-            className="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-muted transition-colors hover:bg-surface2 hover:text-ink"
+            className="flex cursor-pointer items-center gap-1.5 rounded-chip px-3 py-2 text-sm text-muted transition-colors hover:bg-surface2 hover:text-ink"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             {step === 0 ? "Start over" : "Back"}
@@ -253,7 +253,7 @@ export default function OnboardingPage() {
                 </div>
 
                 {/* Age visual indicator */}
-                <div className="flex items-center gap-2 rounded-xl bg-surface2 p-3">
+                <div className="flex items-center gap-2 rounded-control bg-surface2 p-3">
                   <span className="text-sm text-accent">
                     {age <= 7 ? <Baby className="h-4 w-4" /> : age <= 9 ? <User className="h-4 w-4" /> : age <= 11 ? <UserRound className="h-4 w-4" /> : <GraduationCap className="h-4 w-4" />}
                   </span>
@@ -303,7 +303,7 @@ export default function OnboardingPage() {
                       <button
                         key={opt.label}
                         onClick={() => setInterest(opt.label)}
-                        className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-4 text-center text-sm font-medium transition-all cursor-pointer ${
+                        className={`flex flex-col items-center gap-2 rounded-control border px-3 py-4 text-center text-sm font-medium transition-all cursor-pointer ${
                           active
                             ? "border-accent bg-accent-dim text-ink shadow-sm"
                             : "border-line bg-surface2 text-muted hover:border-accent/40"
@@ -335,7 +335,7 @@ export default function OnboardingPage() {
                         <button
                           key={s.value}
                           onClick={() => setStyle(s.value)}
-                          className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 text-center transition-all cursor-pointer ${
+                          className={`flex flex-col items-center gap-1.5 rounded-control border px-3 py-3 text-center transition-all cursor-pointer ${
                             style === s.value
                               ? "border-accent bg-accent-dim text-ink"
                               : "border-line text-muted hover:border-accent/40"
@@ -382,14 +382,14 @@ export default function OnboardingPage() {
                       <button
                         key={opt.label}
                         onClick={() => setFrustration(opt.label)}
-                        className={`flex w-full items-center gap-4 rounded-xl border px-5 py-4 text-left transition-all cursor-pointer ${
+                        className={`flex w-full items-center gap-4 rounded-control border px-5 py-4 text-left transition-all cursor-pointer ${
                           active
                             ? "border-accent bg-accent-dim text-ink shadow-sm"
                             : "border-line bg-surface text-muted hover:border-accent/40 hover:bg-surface-hover"
                         }`}
                       >
                         <span
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-control ${
                             active ? "bg-accent/15 text-accent" : "bg-surface2 text-muted"
                           }`}
                         >
@@ -419,7 +419,7 @@ export default function OnboardingPage() {
                     Back
                   </Button>
                   <Button onClick={finish} size="lg" className="flex-[2]">
-                    <Sparkles className="h-4 w-4" />
+                    <UserPlus className="h-4 w-4" />
                     Create {childName || "their"} profile
                   </Button>
                 </div>

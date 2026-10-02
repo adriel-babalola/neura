@@ -15,8 +15,8 @@ import {
   Sparkles,
   Star,
   UserRound,
-  Wand2,
 } from "lucide-react";
+import { ChalkDivider } from "@/components/ui";
 
 const FEATURES = [
   {
@@ -138,7 +138,7 @@ const PLANS = [
 const TRUST_LOGOS = [
   "Adaptive AI tutoring",
   "Child-safe by design",
-  "No data stored remotely",
+  "Progress stays in your browser",
   "Free to start",
 ];
 
@@ -148,12 +148,12 @@ export default function Home() {
       <div className="aurora-bg" aria-hidden />
 
       {/* ── Nav ─────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-line/70 bg-canvas/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-line bg-canvas">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
-          <span className="font-display text-xl font-bold tracking-tight text-ink">
+          <span className="font-display text-lg font-bold tracking-tight text-ink">
             Neura<span className="text-accent">.</span>
           </span>
-          <nav className="hidden items-center gap-8 text-sm text-muted md:flex">
+          <nav className="hidden items-center gap-7 text-[13px] text-muted md:flex">
             <a href="#why" className="transition-colors hover:text-ink">
               Why Neura
             </a>
@@ -167,16 +167,23 @@ export default function Home() {
               Pricing
             </a>
           </nav>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/demo"
+              className="inline-flex h-9 items-center gap-1.5 rounded-chip border border-line bg-surface px-3 font-display text-[11px] font-semibold text-muted transition-colors hover:border-accent/40 hover:text-ink"
+            >
+              <BrainCircuit className="h-3.5 w-3.5" />
+              Deep-Tech Lab
+            </Link>
             <Link
               href="/signin"
-              className="hidden h-9 items-center rounded-lg border border-line bg-surface/50 px-4 font-display text-sm font-medium text-ink backdrop-blur-sm transition-colors hover:bg-surface-hover sm:inline-flex"
+              className="hidden h-9 items-center rounded-chip border border-line bg-surface px-4 font-display text-[13px] font-semibold text-ink transition-colors hover:bg-surface2 sm:inline-flex"
             >
               Sign in
             </Link>
             <Link
               href="/signin"
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent px-4 font-display text-sm font-medium text-white shadow-sm shadow-accent/20 transition-all hover:brightness-[1.06] active:scale-[0.98]"
+              className="inline-flex h-9 items-center gap-1.5 rounded-chip bg-accent px-4 font-display text-[13px] font-semibold text-white transition-all hover:brightness-[1.06] active:scale-[0.98]"
             >
               Get started
               <ArrowRight className="h-3.5 w-3.5" />
@@ -191,25 +198,36 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="max-w-4xl font-display text-4xl font-extrabold tracking-tighter text-ink sm:text-5xl md:text-6xl lg:text-7xl"
+          className="max-w-4xl font-display text-[2rem] font-extrabold leading-[1.05] tracking-tighter text-ink sm:text-[2.5rem] md:text-[3rem] lg:text-[3.25rem]"
         >
           Every child learns
           <br className="hidden sm:block" />
-          <span className="bg-gradient-to-r from-accent via-accent/80 to-accent/50 bg-clip-text text-transparent">
-            their own way.
-          </span>
+          {/* Solid accent rather than a gradient: the fade-out read as washed
+              out against cream and cost the headline its emphasis. */}
+          <span className="text-accent">their own way.</span>
         </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg md:text-xl"
+          className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted sm:text-base md:text-lg"
         >
           Neura learns who your child is, their interests, how they think, and where they
           struggle, then builds a lesson just for them. Teaching through chalkboards,
           stories, and questions that feel like play.
         </motion.p>
+
+        {/* Chalk stroke as the hero's only ornament, tying the marketing page
+            to the chalkboards the product actually uses. */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 }}
+          className="mt-7 max-w-sm"
+        >
+          <ChalkDivider />
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -219,14 +237,14 @@ export default function Home() {
         >
           <Link
             href="/signin"
-            className="group inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-accent px-8 text-sm font-semibold text-white shadow-lg shadow-accent/25 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-accent/30 active:scale-[0.98]"
+            className="group inline-flex h-[52px] items-center justify-center gap-2 rounded-control bg-accent px-8 text-sm font-semibold text-white shadow-none transition-all hover:scale-[1.02] hover:brightness-[1.06] active:scale-[0.98]"
           >
             Start free, no credit card
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <a
             href="#how"
-            className="group inline-flex h-[52px] items-center justify-center gap-2 rounded-xl border border-line bg-surface/50 px-8 text-sm font-semibold text-ink backdrop-blur-sm transition-colors hover:bg-surface"
+            className="group inline-flex h-[52px] items-center justify-center gap-2 rounded-control border border-line bg-surface px-8 text-[13px] font-semibold text-ink transition-colors hover:bg-surface2"
           >
             <Play className="h-4 w-4 text-accent" />
             Watch how it works
@@ -258,13 +276,15 @@ export default function Home() {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="relative mt-16 w-full max-w-5xl"
         >
-          <div className="relative overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl shadow-black/5">
-            {/* Fake browser chrome */}
+          <div className="relative overflow-hidden rounded-card border border-line bg-surface" style={{ boxShadow: "var(--shadow-lift)" }}>
+            {/* Fake browser chrome. The three dots are chalk-toned rather than
+                the red/yellow/green macOS colours, which pulled the eye away from
+                the dashboard mock underneath. */}
             <div className="flex h-10 items-center gap-2 border-b border-line bg-surface2 px-4">
-              <span className="h-3 w-3 rounded-full bg-red-400/60" />
-              <span className="h-3 w-3 rounded-full bg-yellow-400/60" />
-              <span className="h-3 w-3 rounded-full bg-green-400/60" />
-              <span className="mx-auto rounded-md bg-canvas px-16 py-1 text-[10px] text-muted">
+              <span className="h-2.5 w-2.5 rounded-full bg-line" />
+              <span className="h-2.5 w-2.5 rounded-full bg-line" />
+              <span className="h-2.5 w-2.5 rounded-full bg-line" />
+              <span className="mx-auto rounded-chip bg-surface px-16 py-1 text-[10px] text-muted">
                 neura.app/parent
               </span>
             </div>
@@ -273,27 +293,27 @@ export default function Home() {
               {/* Mini sidebar */}
               <div className="hidden space-y-2 lg:block">
                 <div className="h-8 w-full rounded-lg bg-accent-dim" />
-                <div className="h-6 w-3/4 rounded-md bg-surface2" />
-                <div className="h-6 w-2/3 rounded-md bg-surface2" />
-                <div className="h-6 w-3/4 rounded-md bg-surface2" />
+                <div className="h-6 w-3/4 rounded-chip bg-surface2" />
+                <div className="h-6 w-2/3 rounded-chip bg-surface2" />
+                <div className="h-6 w-3/4 rounded-chip bg-surface2" />
               </div>
               {/* Content area */}
               <div className="col-span-4 space-y-3 lg:col-span-3">
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-line bg-accent-dim p-4">
+                  <div className="rounded-control border border-line bg-accent-dim p-4">
                     <div className="h-3 w-8 rounded bg-accent/30" />
                     <div className="mt-2 h-6 w-12 rounded bg-accent/40" />
                   </div>
-                  <div className="rounded-xl border border-line bg-surface2 p-4">
+                  <div className="rounded-control border border-line bg-surface2 p-4">
                     <div className="h-3 w-10 rounded bg-line" />
                     <div className="mt-2 h-6 w-8 rounded bg-muted/20" />
                   </div>
-                  <div className="rounded-xl border border-line bg-surface2 p-4">
+                  <div className="rounded-control border border-line bg-surface2 p-4">
                     <div className="h-3 w-12 rounded bg-line" />
                     <div className="mt-2 h-6 w-10 rounded bg-muted/20" />
                   </div>
                 </div>
-                <div className="rounded-xl border border-line bg-surface2 p-4">
+                <div className="rounded-control border border-line bg-surface2 p-4">
                   <div className="flex gap-2">
                     {[40, 60, 30, 80, 50, 70, 45].map((h, i) => (
                       <div
@@ -321,7 +341,7 @@ export default function Home() {
           <p className="font-display text-xs font-bold uppercase tracking-widest text-accent">
             Why Neura
           </p>
-          <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink md:text-5xl">
+          <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink md:text-4xl">
             One lesson at a time, built around your child.
           </h2>
           <p className="mt-4 text-muted">
@@ -339,17 +359,17 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
                 transition={{ delay: i * 0.08 }}
-                className={`card-hover group relative overflow-hidden rounded-2xl border border-line bg-surface p-7 ${f.span}`}
+                className={`card-hover group relative overflow-hidden rounded-card border border-line bg-surface p-7 ${f.span}`}
               >
                 <div
                   aria-hidden
                   className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-glow/15 blur-3xl transition-opacity opacity-0 group-hover:opacity-100"
                 />
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-line bg-surface2 text-accent">
+                <span className="flex h-12 w-12 items-center justify-center rounded-control border border-line bg-surface2 text-accent">
                   <Icon className="h-5 w-5" />
                 </span>
-                <h3 className="mt-5 font-display text-lg font-bold text-ink">{f.title}</h3>
-                <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">{f.desc}</p>
+                <h3 className="mt-5 font-display text-base font-bold text-ink">{f.title}</h3>
+                <p className="mt-2 max-w-md text-[13px] leading-relaxed text-muted">{f.desc}</p>
                 {f.stat ? (
                   <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink">
                     <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -363,13 +383,13 @@ export default function Home() {
       </section>
 
       {/* ── How it works ────────────────────────────────── */}
-      <section id="how" className="relative z-10 bg-surface2/40 py-20 md:py-28">
+      <section id="how" className="relative z-10 bg-surface2 py-20 md:py-28">
         <div className="mx-auto w-full max-w-7xl px-6">
           <div className="mb-14 text-center">
             <p className="font-display text-xs font-bold uppercase tracking-widest text-accent">
               How it works
             </p>
-            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink md:text-5xl">
+            <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink md:text-4xl">
               Three steps to a breakthrough
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-muted">
@@ -387,16 +407,16 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="card-hover relative rounded-2xl border border-line bg-surface p-8 text-center"
+                  className="card-hover relative rounded-card border border-line bg-surface p-8 text-center"
                 >
-                  <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-dim">
+                  <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-card bg-accent-dim">
                     <Icon className="h-6 w-6 text-accent" />
                   </span>
                   <span className="absolute right-4 top-4 font-display text-3xl font-black text-line/80">
                     {s.num}
                   </span>
-                  <h3 className="font-display text-xl font-bold text-ink">{s.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-muted">{s.desc}</p>
+                  <h3 className="font-display text-lg font-bold text-ink">{s.title}</h3>
+                  <p className="mt-3 text-[13px] leading-relaxed text-muted">{s.desc}</p>
                 </motion.div>
               );
             })}
@@ -410,7 +430,7 @@ export default function Home() {
           <p className="font-display text-xs font-bold uppercase tracking-widest text-accent">
             Loved by families
           </p>
-          <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink md:text-5xl">
+          <h2 className="mt-3 font-display text-2xl font-bold tracking-tight text-ink md:text-4xl">
             Parents see the difference.
           </h2>
         </div>
@@ -423,16 +443,16 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="card-hover relative rounded-2xl border border-line bg-surface p-6"
+              className="card-hover relative rounded-card border border-line bg-surface p-6"
             >
               <Quote className="mb-3 h-5 w-5 text-accent/40" />
-              <p className="text-sm leading-relaxed text-ink">{t.text}</p>
+              <p className="text-[13px] leading-relaxed text-ink">{t.text}</p>
               <div className="mt-5 flex items-center gap-3 border-t border-line pt-4">
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-dim font-display text-xs font-bold text-accent">
                   {t.name[0]}
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-ink">{t.name}</p>
+                  <p className="text-[13px] font-semibold text-ink">{t.name}</p>
                   <p className="text-xs text-muted">{t.role}</p>
                 </div>
                 <div className="ml-auto flex gap-0.5">
@@ -450,84 +470,33 @@ export default function Home() {
       </section>
 
       {/* ── Pricing ─────────────────────────────────────── */}
-      <section id="pricing" className="relative z-10 bg-surface2/40 py-20 md:py-28">
-        <div className="mx-auto w-full max-w-7xl px-6">
-          <div className="mb-14 text-center">
-            <p className="font-display text-xs font-bold uppercase tracking-widest text-accent">
+      <section id='pricing' className='relative z-10 bg-surface2 py-10 md:py-12'>
+        <div className='mx-auto w-full max-w-7xl px-6'>
+          <div className='mb-6 text-center'>
+            <p className='font-display text-xs font-bold uppercase tracking-widest text-accent'>
               Pricing
             </p>
-            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink md:text-5xl">
-              Simple, honest pricing.
+            <h2 className='mt-3 font-display text-xl font-bold tracking-tight text-ink md:text-2xl'>
+              Coming soon
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-muted">
-              Start free with no credit card. Upgrade when your family is ready for more.
+            <p className='mx-auto mt-2 max-w-md text-[13px] text-muted'>
+              Simple, honest pricing for families. We&apos;ll share it here soon.
             </p>
-          </div>
-
-          <div className="mx-auto grid max-w-4xl gap-5 md:grid-cols-3">
-            {PLANS.map((plan, i) => (
-              <motion.div
-                key={plan.name}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className={`card-hover relative flex flex-col rounded-2xl border p-7 ${
-                  plan.featured
-                    ? "border-accent/60 bg-surface shadow-xl shadow-accent/5"
-                    : "border-line bg-surface"
-                }`}
-              >
-                {plan.featured ? (
-                  <span className="absolute -top-3 left-6 rounded-full bg-accent px-3 py-1 text-[11px] font-bold text-white shadow-sm">
-                    Most popular
-                  </span>
-                ) : null}
-                <div>
-                  <h3 className="font-display text-lg font-bold text-ink">{plan.name}</h3>
-                  <div className="mt-2 flex items-baseline gap-1">
-                    <span className="font-display text-3xl font-bold tracking-tight text-ink">
-                      {plan.price}
-                    </span>
-                    <span className="text-sm text-muted">{plan.period}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-muted">{plan.desc}</p>
-                </div>
-                <ul className="mt-6 flex-1 space-y-3">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-ink">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/signin"
-                  className={`mt-8 inline-flex h-12 items-center justify-center rounded-xl text-sm font-semibold transition-all active:scale-[0.98] ${
-                    plan.featured
-                      ? "bg-accent text-white shadow-sm shadow-accent/25 hover:brightness-[1.06]"
-                      : "border border-line text-ink hover:bg-surface2"
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
-              </motion.div>
-            ))}
           </div>
         </div>
       </section>
 
       {/* ── Final CTA ───────────────────────────────────── */}
       <section className="relative z-10 mx-auto w-full max-w-7xl px-6 py-20 md:py-24">
-        <div className="relative overflow-hidden rounded-3xl border border-line bg-surface px-8 py-16 text-center md:py-20">
+        <div className="relative overflow-hidden rounded-card border border-line bg-surface px-8 py-16 text-center md:py-20">
           <div
             aria-hidden
             className="pointer-events-none absolute left-1/2 top-0 h-48 w-[36rem] -translate-x-1/2 rounded-full bg-glow/20 blur-3xl"
           />
-          <span className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-surface2 text-accent">
+          <span className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-card border border-line bg-surface2 text-accent">
             <GraduationCap className="h-7 w-7" />
           </span>
-          <h2 className="relative mx-auto mt-6 max-w-2xl font-display text-3xl font-bold tracking-tight text-ink md:text-5xl">
+          <h2 className="relative mx-auto mt-6 max-w-2xl font-display text-2xl font-bold tracking-tight text-ink md:text-4xl">
             Ready to see your child light up about learning?
           </h2>
           <p className="relative mx-auto mt-4 max-w-xl text-muted">
@@ -535,7 +504,7 @@ export default function Home() {
           </p>
           <Link
             href="/signin"
-            className="group relative mt-8 inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-accent px-8 text-sm font-semibold text-white shadow-lg shadow-accent/25 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-accent/30 active:scale-[0.98]"
+            className="group relative mt-8 inline-flex h-[52px] items-center justify-center gap-2 rounded-control bg-accent px-8 text-sm font-semibold text-white shadow-none transition-all hover:scale-[1.02] hover:brightness-[1.06] active:scale-[0.98]"
           >
             Start free today
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -545,22 +514,24 @@ export default function Home() {
 
       {/* ── Footer ──────────────────────────────────────── */}
       <footer className="relative z-10 border-t border-line/70 py-10">
-        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
-          <span className="flex items-center gap-2">
-            <span className="font-display text-lg font-bold text-ink">
-              Neura<span className="text-accent">.</span>
-            </span>
-            <span className="text-xs text-muted">
-              Made with care for kids and parents.
-            </span>
-          </span>
-          <div className="flex items-center gap-4 text-xs text-muted">
-            <span className="flex items-center gap-1.5">
-              <Wand2 className="h-3 w-3" />
-              Demo only, nothing stored remotely
-            </span>
-            <span>Privacy</span>
-            <span>Terms</span>
+        <div className="mx-auto w-full max-w-7xl px-6">
+          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+            <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <span className="font-display text-base font-bold text-ink">
+                Neura<span className="text-accent">.</span>
+              </span>
+              <span className="text-xs text-muted">
+                Made with care for kids and parents.
+              </span>
+            </div>
+            <div className="flex max-w-xl flex-col items-center gap-2 text-xs text-muted sm:flex-row sm:items-start sm:gap-3 sm:text-left">
+              <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:mt-0.5" />
+              <span>
+                Profiles and progress stay in your browser. Lessons are written by an
+                AI provider we call with a minimised prompt, and can be pointed at
+                your own server instead.
+              </span>
+            </div>
           </div>
         </div>
       </footer>

@@ -57,19 +57,27 @@ src/
     child/latest/page.tsx # Student lesson view
     api/
       generate-lesson/    # AI lesson generation endpoint
-      tts/                # Text-to-speech proxy (free, no key)
+      tts/                # Narration proxy (tone-routed, private cache)
+      edge-ai/            # Server-only short explanation proxy
   components/
-    blackboard.tsx        # Animated chalkboard with KaTeX math
     lesson-view.tsx       # Full lesson player with questions
-    chalk-dust.tsx        # Particle effect overlay
+    animated-math-board.tsx # Semantic SVG board from model-authored strokes
+    offline-banner.tsx    # Connectivity status for children
   lib/
-    gemini.ts             # AI lesson generation (OpenRouter/Groq)
-    say.ts                # Voice orchestrator
-    speech.ts             # Browser speechSynthesis wrapper
-    tts.ts                # Remote TTS client
+    lesson-generator.ts   # Provider chain with retries (server-only)
+    lesson-json.ts        # Model chain, prompts, JSON parsing
+    lesson-normalize.ts   # Repairs malformed model output
+    openrouter-tts.ts     # Cloud narration (server-only)
+    tts-voice.ts          # Tone -> model/voice routing
+    audio-format.ts       # PCM -> WAV, chunk joining
+    say.ts                # Voice orchestrator (cloud first, browser fallback)
+    speech-text.ts        # LaTeX verbalisation and chunking
+    api-client.ts         # Server-routed client, never holds a key
     types.ts              # TypeScript interfaces
     fallback.ts           # Offline fallback lesson
-    history.ts            # Lesson history (localStorage)
+    edge-fallback.ts      # Normalized offline lesson
+    history.ts            # Lesson history (localStorage, local dates)
+    mastery.ts            # Aggregate learner model for adaptive prompts
 ```
 
 ## How Lessons Work
@@ -79,19 +87,32 @@ src/
 3. Each scene appears on an animated chalkboard with:
    - Text lines (with chalk styling and color coding)
    - LaTeX math (rendered by KaTeX)
+   - A semantic board drawn as SVG strokes, not an image
    - Reading-hold timers so content stays visible
 4. Questions pause the lesson and prompt the child
 5. Hints guide reasoning without giving answers
 6. Confetti and encouragement on correct answers
+7. On finish, accuracy, hint usage, and duration are recorded locally
+
+Narration is routed by scene tone: Gemini speaks the story, Voxtral speaks
+the emotional beats. LaTeX is verbalised for speech and stripped from the
+caption so the child never hears markup.
 
 ## Environment Variables
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `OPENROUTER_API_KEY` | Yes | AI lesson generation (free at openrouter.ai) |
-| `GROQ_API_KEY` | Optional | Backup AI provider |
+| `OPENROUTER_API_KEY` | Yes | Lesson generation **and** narration |
+| `NEURA_LLM_BASE_URL` / `NEURA_LLM_API_KEY` | No | Self-hosted OpenAI-compatible backend |
+| `GROQ_API_KEY` | No | Optional extra generation fallback |
+| `GEMINI_API_KEY` | No | Optional extra generation fallback |
+| `NEURA_TTS_MODE` | No | `auto` (default), `expressive`, `standard`, `budget` |
 
-Voice/TTS requires no API key. It uses a server-side proxy.
+The API key is only read on the server. The browser calls `/api/*` and never
+sees a key. Narration responses are `private, no-store`; repeat requests are
+served from a short in-memory cache on the server.
+
+See `.env.example` for the full list.
 
 ## Development
 

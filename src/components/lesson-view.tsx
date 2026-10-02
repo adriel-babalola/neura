@@ -15,6 +15,9 @@ import {
 import confetti from "canvas-confetti";
 import type { Lesson, Question, Scene } from "@/lib/types";
 import { prewarm, say, stopSay } from "@/lib/say";
+import { addLessonRecord } from "@/lib/history";
+import AnimatedMathBoard from "@/components/AnimatedMathBoard";
+import { hasMathBlock, stripLatexBlocks } from "@/lib/speech-text";
 import {
   isSpeechEnabled,
   onVoicesChanged,
@@ -26,6 +29,8 @@ import {
 type Status = "idle" | "correct" | "wrong" | "revealed";
 
 const CONFETTI_COLORS = ["#F2C56B", "#F0A6A6", "#9CC5E8", "#A9D4B4", "#F2F0E6"];
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
@@ -48,6 +53,14 @@ function celebrate() {
     disableForReducedMotion: true,
   });
 }
+
+/** Math worth rendering: either a semantic board or inline LaTeX in prose. */
+function hasMath(scene: Scene) {
+  if (scene.board && scene.board.length > 0) return true;
+  return hasMathBlock(scene.narrative);
+}
+
+// ─── QuestionPanel ───────────────────────────────────────────────────────────
 
 function QuestionPanel({
   q,
@@ -89,7 +102,7 @@ function QuestionPanel({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
-      className="question-alert flex flex-col gap-4 rounded-2xl border border-accent/40 bg-surface p-5 shadow-[0_0_0_1px_rgba(242,197,107,0.15),0_8px_30px_-8px_rgba(0,0,0,0.25)]"
+      className="question-alert flex flex-col gap-4 rounded-card border border-accent/40 bg-surface p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 rounded-full bg-accent-dim px-2.5 py-1 font-display text-xs font-bold text-accent">
@@ -168,6 +181,8 @@ function QuestionPanel({
   );
 }
 
+// ─── StoryScene ───────────────────────────────────────────────────────────────
+
 function StoryScene({
   scene,
   onDone,
@@ -188,18 +203,12 @@ function StoryScene({
 
   useEffect(() => {
     if (!visible) return;
-    // Auto-advance after reading time if no question on this scene
     if (!scene.question) {
-      // When sound is on, wait for narration to finish before advancing
       if (soundOn && !narrationDone) return;
-
-      // When sound is on and narration just finished, advance immediately
       if (soundOn && narrationDone) {
         const t = setTimeout(onDone, 300);
         return () => clearTimeout(t);
       }
-
-      // When sound is off, use word-count-based timer
       const words = scene.narrative.split(/\s+/).length;
       const readTimeMs = Math.max(4000, words * 300 + 1500);
       const t = setTimeout(onDone, readTimeMs);
@@ -207,19 +216,13 @@ function StoryScene({
     }
   }, [visible, scene, onDone, narrationDone, soundOn]);
 
+  // Narrative prose for display. Math itself moves to the board below.
+  const cleanNarrative = stripLatexBlocks(scene.narrative);
+  const showMath = hasMath(scene);
+
   return (
-    <div className="flex h-full items-center justify-center overflow-y-auto px-6 py-8 md:px-10">
-      <div className="max-w-2xl space-y-5">
-        {visible && (
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="font-display text-[19px] leading-8 text-chalk"
-          >
-            {scene.narrative}
-          </motion.p>
-        )}
+    <div className="flex h-full items-start justify-center overflow-y-auto px-6 py-10 md:px-10">
+      <div className="max-w-2xl w-full space-y-6">
         {!visible && (
           <motion.span
             className="inline-block h-5 w-2 bg-chalk/60"
@@ -227,10 +230,36 @@ function StoryScene({
             transition={{ duration: 1, repeat: Infinity }}
           />
         )}
+
+        {visible && (
+          <>
+            {/* Narrative text rendered as chalk on board */}
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="font-display text-[19px] leading-8 text-chalk chalk-glow"
+            >
+              {cleanNarrative || scene.narrative}
+            </motion.p>
+
+            {showMath && (
+              <AnimatedMathBoard
+                strokes={scene.board}
+                content={
+                  scene.board?.length ? undefined : scene.narrative
+                }
+                theme="board"
+              />
+            )}
+          </>
+        )}
       </div>
     </div>
   );
 }
+
+// ─── LessonView ───────────────────────────────────────────────────────────────
 
 export default function LessonView({ lesson }: { lesson: Lesson }) {
   const router = useRouter();
@@ -240,8 +269,17 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
   const [voiceStatus, setVoiceStatus] = useState<"ok" | "no-voices" | "unsupported">("ok");
   const announcedRef = useRef<string | null>(null);
   const lastSolvedSpeakRef = useRef(0);
-  const narratedRef = useRef<number | null>(null);
-  const prewarmedRef = useRef(false);
+const narratedRef = useRef<number | null>(null);
+const prewarmedRef = useRef(false);
+const stopOnUnmountRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Question ids the child needed a hint for. This is the difference between
+  // "answered correctly" and "actually knew it", and it is the only signal the
+  // learner model trusts.
+  const hintedIdsRef = useRef<Set<string>>(new Set());
+  const recordedRef = useRef(false);
+  // Set on mount rather than in the initialiser: reading the clock during
+  // render is impure, and an effect already runs once for the same purpose.
+  const startedAtRef = useRef<number>(0);
   const [narrationDone, setNarrationDone] = useState(false);
 
   const currentScene = lesson.scenes[Math.min(sceneIndex, lesson.scenes.length - 1)];
@@ -285,43 +323,101 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
 
   const finished = sceneIndex >= lesson.scenes.length - 1;
 
+  /**
+   * Write the lesson record once the child has cleared the final scene.
+   *
+   * Advancing past a scene is blocked while that scene still has an unsolved
+   * question, so reaching the last scene with nothing pending means every
+   * question in the lesson has been answered. Written exactly once, guarded by
+   * a ref, because this effect can re-fire on re-render.
+   */
+  useEffect(() => {
+    if (!finished || pendingQuestion || recordedRef.current) return;
+    recordedRef.current = true;
+
+    const questionsTotal = questions.length;
+    const questionsCorrect = solvedIds.size;
+    const hintsUsed = questions.filter((q) => hintedIdsRef.current.has(q.id)).length;
+
+    addLessonRecord({
+      id: lesson.id,
+      title: lesson.title,
+      subject: lesson.subject,
+      focus: lesson.focus,
+      mode: "story",
+      childName: lesson.childName,
+      questionsTotal,
+      questionsCorrect,
+      hintsUsed,
+      durationMs: Math.max(0, Date.now() - startedAtRef.current),
+    });
+  }, [finished, pendingQuestion, questions, solvedIds, lesson]);
+
   const speakPrompt = useCallback((q: Question, signal = true) => {
     if (!isSpeechEnabled()) return;
-    if (signal) say(`Here is a question for you. ${q.prompt}`);
-    else say(q.prompt);
+    // Same narrator for every beat, so only the wording signals that the tutor
+    // is asking rather than telling. The cue and the question are queued as one
+    // utterance so the question is never spoken before the cue finishes.
+    if (signal) say(`Here is a question for you. ${q.prompt}`, "curious");
+    else say(q.prompt, "curious");
   }, []);
 
+  // Stop narration when the lesson really unmounts, but not on React's
+  // StrictMode double-invoke: mount, cleanup, remount would otherwise cancel the
+  // opening line before it was audible. The stop is deferred and cancelled if
+  // the component is still mounted.
   useEffect(() => {
+    if (stopOnUnmountRef.current !== null) {
+      clearTimeout(stopOnUnmountRef.current);
+      stopOnUnmountRef.current = null;
+    }
+    return () => {
+      stopOnUnmountRef.current = setTimeout(() => {
+        stopOnUnmountRef.current = null;
+        stopSay();
+      }, 50);
+    };
+  }, []);
+
+  // Unlock speech on first interaction
+  useEffect(() => {
+    startedAtRef.current = Date.now();
     const unlock = () => unlockSpeech();
     window.addEventListener("pointerdown", unlock, { once: true });
     return () => window.removeEventListener("pointerdown", unlock);
   }, []);
 
+  // Watch voice status
   useEffect(() => {
     const update = () => setVoiceStatus(speechStatus());
     update();
     return onVoicesChanged(update);
   }, []);
 
+  // Speak intro once on mount
   useEffect(() => {
     if (!soundOn || !lesson.intro) return;
-    const t = setTimeout(() => say(lesson.intro), 500);
+    const t = setTimeout(() => say(lesson.intro, "narrate"), 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Warm the audio cache for the opening scene so the first beat is instant
   useEffect(() => {
     if (!soundOn || prewarmedRef.current) return;
     prewarmedRef.current = true;
-    const texts: string[] = [];
-    const s = lesson.scenes[0];
-    if (s && s.narrative) {
-      texts.push(s.narrative.slice(0, 400));
-    }
-    prewarm(texts);
+    const targets = [
+      ...(lesson.intro ? [{ text: lesson.intro, tone: "narrate" as const }] : []),
+      ...(lesson.scenes[0]?.speech
+        ? [{ text: lesson.scenes[0].speech, tone: lesson.scenes[0].tone ?? "narrate" }]
+        : []),
+    ];
+    if (targets.length) void prewarm(targets);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Narrate the scene. Uses the model's spoken text, which is already free of
+  // LaTeX, and the scene tone so the delivery matches the beat.
   useEffect(() => {
     if (!soundOn || !currentScene) return;
     if (narratedRef.current === sceneIndex) return;
@@ -332,22 +428,26 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
     let cancelled = false;
 
     const t = setTimeout(() => {
-      const text = currentScene.narrative;
+      const text = currentScene.speech ?? currentScene.narrative;
       if (text?.trim()) {
-        say(text).then(() => {
+        say(text, currentScene.tone).then(() => {
           if (!cancelled) setNarrationDone(true);
         });
       } else {
         if (!cancelled) setNarrationDone(true);
       }
     }, delay);
+    // No stopSay() here. Cleaning up this effect must not cancel speech that
+    // another effect queued: solving a question speaks a celebration and then
+    // advances the scene, so stopping on scene change silenced the celebration
+    // every time. The serial queue in say.ts keeps lines in order instead.
     return () => {
       cancelled = true;
       clearTimeout(t);
-      stopSay();
     };
   }, [sceneIndex, currentScene, soundOn]);
 
+  // Announce question when it appears
   useEffect(() => {
     if (pendingQuestion && announcedRef.current !== pendingQuestion.id) {
       announcedRef.current = pendingQuestion.id;
@@ -360,7 +460,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
       const q = questions.find((x) => x.id === qId);
       if (q) {
         celebrate();
-        say("Yes! You got it. Great thinking.");
+        say("Yes! You got it. Great thinking.", "excited");
         lastSolvedSpeakRef.current = Date.now();
       }
       onSolved(qId);
@@ -372,10 +472,13 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
     (attempt: number) => {
       const q = pendingQuestion;
       if (!q) return;
+      // Record the hint before any speech throttling: a muted or still-loading
+      // narrator must not lose the fact that this question needed help.
+      hintedIdsRef.current.add(q.id);
       const now = Date.now();
       if (now - lastSolvedSpeakRef.current < 1200) return;
-      if (attempt === 0) say(`Not quite. Here is a hint: ${q.hint}`);
-      else say(`Try this: ${q.deeperHint}`);
+      if (attempt === 0) say(`Not quite. Here is a hint: ${q.hint}`, "encourage");
+      else say(`Try this: ${q.deeperHint}`, "encourage");
     },
     [pendingQuestion]
   );
@@ -388,10 +491,19 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
     if (!next) stopSay();
   };
 
+  const replayNarration = () => {
+    if (!currentScene) return;
+    const text = currentScene.speech ?? currentScene.narrative;
+    if (!text?.trim()) return;
+    stopSay();
+    say(text, currentScene.tone);
+  };
+
   const solvedCount = questions.filter((q) => q.sceneIndex < sceneIndex).length;
 
   return (
     <div className="flex h-[100dvh] flex-col bg-board">
+      {/* ── Header ── */}
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-line/30 bg-board px-3 py-2 sm:px-4 sm:py-3 md:px-6">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <span className="font-display text-[14px] font-bold tracking-tight text-chalk sm:text-[15px]">
@@ -407,6 +519,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+          {/* Progress */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="text-[10px] font-medium text-chalk-dim sm:text-[11px]">
               {Math.min(sceneIndex + 1, lesson.scenes.length)}/{lesson.scenes.length}
@@ -418,6 +531,19 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
               />
             </div>
           </div>
+
+          {/* Replay narration button */}
+          {soundOn && (
+            <button
+              onClick={replayNarration}
+              title="Replay narration"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-line/40 text-chalk-dim transition-colors hover:border-accent/40 hover:text-accent sm:h-9 sm:w-9"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {/* Sound toggle */}
           <button
             onClick={toggleSound}
             title={soundOn ? "Turn off voice" : "Turn on voice"}
@@ -429,15 +555,19 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
           >
             {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
-          {voiceStatus !== "ok" && (
+
+          {/* Voice status badge */}
+          {voiceStatus !== "ok" && soundOn && (
             <span
               className="hidden items-center gap-1 text-[10px] text-chalk-dim xl:flex"
-              title="No system speech voice installed, using the cloud voice instead"
+              title="Using cloud voice (OpenRouter neural TTS)"
             >
               <Volume2 className="h-3 w-3" />
-              Cloud voice
+              Neural voice
             </span>
           )}
+
+          {/* Parent dashboard */}
           <button
             onClick={() => router.push("/parent")}
             className="flex cursor-pointer items-center gap-1 rounded-full border border-line/40 px-2 py-1.5 text-[11px] text-chalk-dim transition-colors hover:text-chalk sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs"
@@ -448,12 +578,33 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
         </div>
       </header>
 
+      {/* ── Main canvas: chalkboard + sidebar ── */}
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] md:grid-cols-[1fr_350px] md:grid-rows-[1fr]">
+
+        {/* Chalkboard area */}
         <div className="relative min-h-0 overflow-hidden">
           <div className="board-texture absolute inset-0 bg-board" />
           <div className="relative h-full p-4 md:p-6">
-            <StoryScene key={sceneIndex} scene={currentScene} onDone={onSceneDone} narrationDone={narrationDone} soundOn={soundOn} />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={sceneIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="h-full"
+              >
+                <StoryScene
+                  scene={currentScene}
+                  onDone={onSceneDone}
+                  narrationDone={narrationDone}
+                  soundOn={soundOn}
+                />
+              </motion.div>
+            </AnimatePresence>
           </div>
+
+          {/* Lesson complete reflection */}
           <AnimatePresence>
             {finished && !isPaused && (
               <motion.div
@@ -462,7 +613,7 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
                 exit={{ opacity: 0 }}
                 className="absolute inset-x-0 bottom-5 z-10 flex justify-center"
               >
-                <div className="mx-4 rounded-2xl border border-accent/30 bg-surface/95 px-6 py-4 text-center shadow-xl">
+                <div className="mx-4 rounded-card border border-accent/30 bg-surface px-6 py-4 text-center" style={{ boxShadow: "var(--shadow-lift)" }}>
                   <p className="font-display text-lg font-bold text-chalk">{lesson.reflection}</p>
                 </div>
               </motion.div>
@@ -470,14 +621,12 @@ export default function LessonView({ lesson }: { lesson: Lesson }) {
           </AnimatePresence>
         </div>
 
+        {/* Question sidebar */}
         <aside className="flex max-h-[50vh] min-h-0 flex-col gap-3 overflow-y-auto border-t border-line/30 bg-board p-4 md:max-h-none md:border-l md:border-t-0 md:p-5">
           <p className="flex items-center gap-1.5 font-display text-xs font-bold uppercase tracking-widest text-chalk-dim">
             {isPaused ? (
               <>
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-                </span>
+                <span className="chalk-beacon" />
                 Your turn
               </>
             ) : (

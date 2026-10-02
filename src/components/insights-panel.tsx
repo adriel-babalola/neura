@@ -1,42 +1,129 @@
 "use client";
 
-import { motion } from "motion/react";
 import {
   Award,
   Brain,
+  Compass,
   Lightbulb,
   TrendingUp,
 } from "lucide-react";
 import type { ProgressStats } from "@/lib/history";
 
+/* Icons carry the tone here instead of coloured backgrounds. Every attempt at a
+   palette-coded version pulled in emerald/amber/purple chips that fought the
+   warm paper palette, and the icons alone read fine. */
+type Tone = "accent" | "success" | "warn";
+
 function InsightCard({
   icon: Icon,
   title,
   description,
-  color,
+  tone,
 }: {
   icon: typeof Brain;
   title: string;
   description: string;
-  color: string;
+  tone: Tone;
 }) {
+  const tones: Record<Tone, string> = {
+    accent: "bg-accent-dim text-accent",
+    success: "bg-success/10 text-success",
+    warn: "bg-warn/10 text-warn",
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex gap-3 rounded-xl border border-line bg-surface p-4 transition-all hover:bg-surface-hover"
-    >
+    <div className="flex gap-3.5 rounded-card border border-line bg-surface p-4 card-hover">
       <span
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${color}`}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-chip ${tones[tone]}`}
       >
-        <Icon className="h-5 w-5" />
+        <Icon className="h-4.5 w-4.5" />
       </span>
-      <div>
-        <p className="font-display text-sm font-semibold text-ink">{title}</p>
-        <p className="mt-0.5 text-xs leading-relaxed text-muted">{description}</p>
+      <div className="min-w-0">
+        <p className="font-display text-sm font-bold tracking-tight text-ink">{title}</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted">{description}</p>
       </div>
-    </motion.div>
+    </div>
   );
+}
+
+type Insight = {
+  icon: typeof Brain;
+  title: string;
+  description: string;
+  tone: Tone;
+};
+
+function buildInsights(stats: ProgressStats, childName: string): Insight[] {
+  const insights: Insight[] = [];
+
+  if (stats.totalLessons === 0) {
+    insights.push({
+      icon: Lightbulb,
+      title: "Ready to start",
+      description: `Create ${childName}'s first lesson to see progress insights here.`,
+      tone: "accent",
+    });
+    return insights;
+  }
+
+  // First-try accuracy, not final accuracy. Counting a question as correct
+  // after the child was handed a hint flattered the number and disagreed with
+  // what the dashboard reports.
+  const accuracy =
+    stats.totalQuestions > 0
+      ? Math.round((stats.firstTryCorrect / stats.totalQuestions) * 100)
+      : 0;
+
+  if (accuracy >= 80) {
+    insights.push({
+      icon: Award,
+      title: "Strong understanding",
+      description: `${childName} answers ${accuracy}% of questions right without a hint. The foundations are solid.`,
+      tone: "success",
+    });
+  } else if (accuracy >= 50) {
+    insights.push({
+      icon: TrendingUp,
+      title: "Getting there",
+      description: `${accuracy}% first-try accuracy. Shorter lessons on the trickier parts usually close the remaining gap.`,
+      tone: "accent",
+    });
+  } else {
+    insights.push({
+      icon: Brain,
+      title: "Building foundations",
+      description: `${accuracy}% first-try accuracy, so the basics need another pass. Describe the exact step that trips ${childName} up and the lesson will target it.`,
+      tone: "warn",
+    });
+  }
+
+  const subjects = Object.keys(stats.subjectBreakdown);
+  if (subjects.length >= 3) {
+    insights.push({
+      icon: Compass,
+      title: "Well-rounded",
+      description: `${childName} has worked across ${subjects.length} subjects.`,
+      tone: "success",
+    });
+  } else if (stats.totalLessons >= 3 && subjects.length === 1) {
+    insights.push({
+      icon: Compass,
+      title: "Deep dive",
+      description: `All ${stats.totalLessons} lessons so far are ${subjects[0]}. One different subject would round this out.`,
+      tone: "accent",
+    });
+  }
+
+  if (stats.streak.current >= 3) {
+    insights.push({
+      icon: Award,
+      title: `${stats.streak.current}-day streak`,
+      description: "Regular short sessions matter more than long ones.",
+      tone: "accent",
+    });
+  }
+
+  return insights;
 }
 
 export function InsightsPanel({
@@ -46,97 +133,22 @@ export function InsightsPanel({
   stats: ProgressStats;
   childName: string;
 }) {
-  const insights: {
-    icon: typeof Brain;
-    title: string;
-    description: string;
-    color: string;
-  }[] = [];
-
-  // Generate smart insights based on data
-  if (stats.totalLessons === 0) {
-    insights.push({
-      icon: Lightbulb,
-      title: "Ready to start!",
-      description: `Create ${childName}'s first lesson to see personalized insights here.`,
-      color: "bg-accent/15 text-accent",
-    });
-  } else {
-    // Accuracy insight
-    const accuracy =
-      stats.totalQuestions > 0
-        ? Math.round((stats.totalCorrect / stats.totalQuestions) * 100)
-        : 0;
-
-    if (accuracy >= 80) {
-      insights.push({
-        icon: Award,
-        title: "Strong understanding",
-        description: `${childName} is answering ${accuracy}% of questions correctly. They're building solid foundations.`,
-        color: "bg-emerald-500/15 text-emerald-600",
-      });
-    } else if (accuracy >= 50) {
-      insights.push({
-        icon: TrendingUp,
-        title: "Growing confidence",
-        description: `${accuracy}% accuracy shows ${childName} is learning. Try shorter, more focused lessons to strengthen weak areas.`,
-        color: "bg-amber-500/15 text-amber-600",
-      });
-    } else {
-      insights.push({
-        icon: Brain,
-        title: "Building foundations",
-        description: `${childName} is still working through the basics. Consider using story mode for a gentler approach.`,
-        color: "bg-purple-500/15 text-purple-600",
-      });
-    }
-
-    // Subject diversity insight
-    const subjectCount = Object.keys(stats.subjectBreakdown).length;
-    if (subjectCount >= 3) {
-      insights.push({
-        icon: Lightbulb,
-        title: "Well-rounded learner",
-        description: `${childName} has explored ${subjectCount} different subjects. Great variety!`,
-        color: "bg-blue-500/15 text-blue-600",
-      });
-    } else if (stats.totalLessons >= 3 && subjectCount === 1) {
-      const subj = Object.keys(stats.subjectBreakdown)[0];
-      insights.push({
-        icon: Lightbulb,
-        title: "Deep dive mode",
-        description: `${childName} is focused on ${subj}. Consider exploring other subjects too for a well-rounded experience.`,
-        color: "bg-blue-500/15 text-blue-600",
-      });
-    }
-
-    // Streak insight
-    if (stats.streak.current >= 3) {
-      insights.push({
-        icon: Award,
-        title: "On a roll!",
-        description: `${stats.streak.current} days in a row! Consistency is the #1 predictor of learning success.`,
-        color: "bg-accent/15 text-accent",
-      });
-    }
-  }
+  const insights = buildInsights(stats, childName);
 
   if (insights.length === 0) return null;
 
   return (
-    <div className="space-y-3">
-      <h3 className="font-display text-sm font-bold text-ink">
-        AI Insights for {childName}
+    <section className="space-y-3">
+      {/* Not labelled "AI": these are fixed rules over local history, and
+          calling them AI would overstate what actually runs here. */}
+      <h3 className="font-display text-sm font-bold tracking-tight text-ink">
+        What the numbers say about {childName}
       </h3>
-      {insights.map((insight, i) => (
-        <InsightCard
-          key={i}
-          icon={insight.icon}
-          title={insight.title}
-          description={insight.description}
-          color={insight.color}
-        />
-      ))}
-    </div>
+      <div className="space-y-2.5">
+        {insights.map((insight) => (
+          <InsightCard key={insight.title} {...insight} />
+        ))}
+      </div>
+    </section>
   );
 }

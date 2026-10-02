@@ -17,40 +17,68 @@
   --color-chalk-p: #F0A6A6;
   --color-chalk-b: #9CC5E8;
 
+  /* These three were referenced across lesson-view and AnimatedMathBoard but
+     had no token behind them, so every use silently rendered as no-op. They
+     pin the child-facing chalkboard world to real values. */
+  --color-board: var(--board);
+  --color-chalk: var(--chalk);
+  --color-chalk-dim: var(--chalk-dim);
+
+  /* Tighter radii than the Tailwind defaults. The product reads as a
+     notebook, so soft 16-24px cards felt like a generic SaaS dashboard. */
+  --radius-card: 14px;
+  --radius-control: 10px;
+  --radius-chip: 8px;
+
   --font-sans: var(--font-inter);
   --font-display: var(--font-plus-jakarta);
 }
 
 :root {
-  /* Parent world: warm light */
-  --canvas: #FBFAF6;
-  --surface: #FFFFFF;
-  --surface2: #F3F1EA;
-  --surface-hover: #ECEAE1;
-  --ink: #1F2A25;
-  --muted: #5E6E66;
-  --line: #E4E2D8;
-  --accent: #D26B4A;
-  --accent-dim: #F6E3DA;
-  --glow: rgba(210, 107, 74, 0.32);
-  --success: #3E7A52;
-  --warn: #B07A1E;
+  /* Parent world: warm paper */
+  --canvas: #FAF7F0;
+  --surface: #FFFDF9;
+  --surface2: #F4F0E6;
+  --surface-hover: #EDE8DA;
+  --ink: #22201B;
+  --muted: #6B6459;
+  --line: #E3DCCB;
+  /* Deeper than a typical terracotta on purpose. The lighter #C25E3C only
+     reached 4.17:1 on this surface, and white-on-accent buttons landed at
+     4.23:1 - both under WCAG AA for the small text and the primary button. */
+  --accent: #B05433;
+  --accent-dim: #F6E2D7;
+  --glow: rgba(176, 84, 51, 0.18);
+  --success: #3F7350;
+  --warn: #8F6212;
+  --shadow-card: 0 1px 2px rgba(34, 32, 27, 0.04), 0 6px 18px -10px rgba(34, 32, 27, 0.12);
+  --shadow-lift: 0 2px 4px rgba(34, 32, 27, 0.05), 0 14px 30px -12px rgba(34, 32, 27, 0.18);
 }
 
 :root[data-mode="board"] {
   /* Child world: warm chalkboard */
   --canvas: #1C2622;
-  --surface: #222F2A;
-  --surface2: #28362F;
-  --surface-hover: #2F3F37;
+  --surface: #222E29;
+  --surface2: #28352F;
+  --surface-hover: #2F3E37;
   --ink: #F2F0E6;
-  --muted: #A9B6AE;
-  --line: rgba(242, 240, 230, 0.12);
+  --muted: #A6B3AB;
+  --line: rgba(242, 240, 230, 0.14);
   --accent: #F2C56B;
   --accent-dim: rgba(242, 197, 107, 0.14);
-  --glow: rgba(242, 197, 107, 0.4);
+  --glow: rgba(242, 197, 107, 0.22);
   --success: #A9D4B4;
   --warn: #F0A6A6;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 20px -12px rgba(0, 0, 0, 0.5);
+  --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.35), 0 16px 34px -14px rgba(0, 0, 0, 0.55);
+}
+
+/* The child world is a chalkboard regardless of the parent theme, so these
+   stay fixed rather than tracking data-mode. */
+:root {
+  --board: #1C2622;
+  --chalk: #F2F0E6;
+  --chalk-dim: #A6B3AB;
 }
 
 html {
@@ -63,32 +91,34 @@ body {
   font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 300ms ease, color 300ms ease;
+  /* Colour mode crossfade only. Transform transitions are left to the
+     component utilities below so reduced-motion can switch them off. */
+  transition: background-color 260ms ease, color 260ms ease;
 }
 
-/* ── Aurora glow behind hero / auth screens ── */
+/* ── Warm wash behind hero / auth screens ──
+   Replaces the old 60px-blurred neon aurora with a soft paper gradient. */
 .aurora-bg {
   position: absolute;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 100vw;
-  height: 640px;
+  height: 560px;
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(circle at 50% 0%, var(--glow) 0%, transparent 58%),
-    radial-gradient(circle at 22% 18%, rgba(210, 107, 74, 0.09) 0%, transparent 46%),
-    radial-gradient(circle at 82% 12%, rgba(196, 164, 102, 0.12) 0%, transparent 46%);
-  filter: blur(60px);
-  opacity: 0.6;
+    radial-gradient(ellipse 70% 100% at 50% -10%, var(--glow) 0%, transparent 62%),
+    radial-gradient(ellipse 40% 70% at 18% 20%, rgba(176, 84, 51, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 70% at 84% 14%, rgba(168, 115, 24, 0.05) 0%, transparent 60%);
 }
 
-/* ── Glass cards ── */
+/* ── Opaque raised surface ──
+   Name kept for existing call sites, but the effect is now solid: the old
+   translucent gradient let whatever sat behind a card show through, which hurt
+   contrast and made stacked panels look muddy. */
 .glass {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.45));
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--surface);
 }
 
 /* ── Chalkboard texture ── */
@@ -114,7 +144,7 @@ body {
 
 /* ── Chalk glow ── */
 .chalk-glow {
-  text-shadow: 0 0 8px rgba(242, 240, 230, 0.18);
+  text-shadow: 0 0 10px rgba(242, 240, 230, 0.16);
 }
 
 /* ── Progress bar smooth fill ── */
@@ -122,105 +152,40 @@ body {
   transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ── Fade-in for onboarding steps ── */
-.fade-step {
-  animation: fadeStep 420ms ease both;
-}
-@keyframes fadeStep {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Question ring signal ── */
+/* ── Question ring signal ──
+   One slow breath rather than the previous 2.6s expanding ring, which read as
+   an alarm next to the lesson content. */
 .question-alert {
-  animation: questionRing 2.6s ease-out infinite;
+  animation: questionRing 4s ease-in-out infinite;
 }
 @keyframes questionRing {
-  0% { box-shadow: 0 0 0 0 rgba(242, 197, 107, 0.35), 0 8px 30px -8px rgba(0, 0, 0, 0.25); }
-  60% { box-shadow: 0 0 0 10px rgba(242, 197, 107, 0), 0 8px 30px -8px rgba(0, 0, 0, 0.25); }
-  100% { box-shadow: 0 0 0 0 rgba(242, 197, 107, 0), 0 8px 30px -8px rgba(0, 0, 0, 0.25); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(242, 197, 107, 0), var(--shadow-card); }
+  50% { box-shadow: 0 0 0 4px rgba(242, 197, 107, 0.14), var(--shadow-card); }
 }
 
-/* ── Pulse glow for accent elements ── */
-.pulse-glow {
-  animation: pulseGlow 2s ease-in-out infinite;
+/* ── "Your turn" beacon ──
+   Replaces an animate-ping, which expanded on a 1s loop and felt urgent while
+   the child was still trying to think. A slow breath is enough. */
+.chalk-beacon {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: beacon 3s ease-in-out infinite;
 }
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(210, 107, 74, 0); }
-  50% { box-shadow: 0 0 20px 4px rgba(210, 107, 74, 0.15); }
-}
-
-/* ── Shimmer skeleton loading ── */
-.skeleton {
-  position: relative;
-  overflow: hidden;
-  background: var(--surface2);
-  border-radius: 8px;
-}
-.skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.4) 50%,
-    transparent 100%
-  );
-  animation: shimmer 1.5s infinite;
-}
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+@keyframes beacon {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(242, 197, 107, 0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(242, 197, 107, 0); }
 }
 
-/* ── Slide up entrance ── */
-.slide-up {
-  animation: slideUp 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Stagger children animation delays ── */
-.stagger > *:nth-child(1) { animation-delay: 0ms; }
-.stagger > *:nth-child(2) { animation-delay: 60ms; }
-.stagger > *:nth-child(3) { animation-delay: 120ms; }
-.stagger > *:nth-child(4) { animation-delay: 180ms; }
-.stagger > *:nth-child(5) { animation-delay: 240ms; }
-.stagger > *:nth-child(6) { animation-delay: 300ms; }
-
-/* ── Hover card lift effect ── */
+/* ── Hover card lift ── */
 .card-hover {
-  transition: transform 200ms ease, box-shadow 200ms ease;
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px -8px rgba(0, 0, 0, 0.1), 0 4px 10px -4px rgba(0, 0, 0, 0.04);
-}
-
-/* ── Gradient text utility ── */
-.text-gradient {
-  background: linear-gradient(135deg, var(--ink) 0%, var(--muted) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Float animation ── */
-.float {
-  animation: float 6s ease-in-out infinite;
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-/* ── Testimonial scroll ── */
-.scroll-mask {
-  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  box-shadow: var(--shadow-lift);
 }
 
 /* ── Selection ── */
@@ -229,13 +194,26 @@ body {
   color: #fff;
 }
 
+/* ── Focus visibility ──
+   Several components clear outline-none for their own focus rings, so this
+   guarantees keyboard users still get one everywhere. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-chip);
+}
+
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .question-alert { animation: none; }
-  .pulse-glow { animation: none; }
-  .float { animation: none; }
-  .skeleton::after { animation: none; }
+  .question-alert,
+  .chalk-beacon,
+  .card-hover,
+  .progress-fill {
+    animation: none !important;
+    transition: none !important;
+  }
+  .card-hover:hover { transform: none; }
 }
 
 /* ── Custom scrollbar ── */

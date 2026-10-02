@@ -10,10 +10,10 @@ import {
   GraduationCap,
   Lock,
   Shield,
-  Sparkles,
   UserRound,
 } from "lucide-react";
 import { useProfile } from "@/lib/profile";
+import { Lead, PageTitle } from "@/components/ui";
 import type { Role } from "@/lib/types";
 
 const ROLES: { role: Role; title: string; subtitle: string; icon: typeof UserRound }[] = [
@@ -67,15 +67,25 @@ export default function SignInPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-surface2">
-              <Sparkles className="h-7 w-7 text-accent" />
+            <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-card border border-line bg-surface2">
+              {/* Chalkboard smilie, matching the favicon. Replaced a sparkle
+                  icon, which read as generic AI-product decoration. */}
+              <svg viewBox="0 0 64 64" className="h-9 w-9" aria-hidden focusable="false">
+                <rect width="64" height="64" rx="14" fill="#1C2622" />
+                <circle cx="32" cy="33" r="19" fill="none" stroke="#F2F0E6" strokeWidth="3.4" />
+                <path d="M22.5 30.5q3.5-5 7 0" fill="none" stroke="#F2F0E6" strokeWidth="3.2" strokeLinecap="round" />
+                <path d="M34.5 30.5q3.5-5 7 0" fill="none" stroke="#F2F0E6" strokeWidth="3.2" strokeLinecap="round" />
+                <path d="M23.5 39q8.5 8.5 17 0" fill="none" stroke="#F2F0E6" strokeWidth="3.2" strokeLinecap="round" />
+                <ellipse cx="20" cy="37.5" rx="3.4" ry="2.3" fill="#F2C56B" opacity="0.5" />
+                <ellipse cx="44" cy="37.5" rx="3.4" ry="2.3" fill="#F2C56B" opacity="0.5" />
+              </svg>
             </span>
-            <h1 className="font-display text-3xl font-extrabold tracking-tighter text-ink sm:text-4xl">
+            <PageTitle>
               Welcome to Neura<span className="text-accent">.</span>
-            </h1>
-            <p className="mt-2 text-sm text-muted">
+            </PageTitle>
+            <Lead className="mx-auto mt-2 max-w-xs">
               Your child&apos;s personal AI tutor. Pick your role to get started.
-            </p>
+            </Lead>
           </motion.div>
         </div>
 
@@ -83,7 +93,7 @@ export default function SignInPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="space-y-5 rounded-2xl border border-line bg-surface p-6 shadow-sm"
+          className="space-y-5 rounded-card border border-line bg-surface p-6"
         >
           <div className="relative">
             <input
@@ -91,7 +101,7 @@ export default function SignInPage() {
               onChange={(e) => setName(e.target.value)}
               type="text"
               placeholder="Your name (demo only)"
-              className="w-full rounded-xl border border-line bg-surface2 py-3.5 pl-4 pr-11 text-[15px] text-ink placeholder:text-muted/60 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15 transition-all"
+              className="w-full rounded-control border border-line bg-surface2 py-3.5 pl-4 pr-11 text-[15px] text-ink placeholder:text-muted/60 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15 transition-all"
             />
             <UserRound className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted/50" />
           </div>
@@ -108,14 +118,14 @@ export default function SignInPage() {
                   <button
                     key={r.role}
                     onClick={() => setSelected(r.role)}
-                    className={`flex flex-col items-center gap-3 rounded-xl border p-5 text-center transition-all cursor-pointer ${
+                    className={`flex flex-col items-center gap-3 rounded-card border p-5 text-center transition-all cursor-pointer ${
                       active
                         ? "border-accent bg-accent-dim shadow-sm"
                         : "border-line bg-surface2 hover:border-accent/40 hover:bg-surface-hover"
                     }`}
                   >
                     <span
-                      className={`flex h-11 w-11 items-center justify-center rounded-xl ${
+                      className={`flex h-11 w-11 items-center justify-center rounded-control ${
                         active ? "bg-accent text-white" : "bg-canvas text-muted"
                       }`}
                     >
@@ -136,28 +146,30 @@ export default function SignInPage() {
           <button
             onClick={continueFlow}
             disabled={!canContinue}
-            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 font-display text-[15px] font-medium text-white shadow-sm shadow-accent/25 transition-all hover:brightness-[1.06] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+            className="group flex w-full items-center justify-center gap-2 rounded-control bg-accent py-3.5 font-display text-[15px] font-medium text-white shadow-sm shadow-accent/25 transition-all hover:brightness-[1.06] active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
           >
             {selected ? "Continue" : "Choose who you are"}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
         </motion.div>
 
-        {/* Trust indicators */}
+        {/* Trust indicators. Worded carefully: profiles and history stay on the
+            device, but lesson prompts do go to the configured AI provider, so a
+            flat "data stays on device" claim would be false. */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
           className="flex flex-col items-center gap-3"
         >
-          <div className="flex items-center gap-4 text-[11px] text-muted/80">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] text-muted/85">
             <span className="flex items-center gap-1.5">
               <Lock className="h-3 w-3" />
               No password needed
             </span>
             <span className="flex items-center gap-1.5">
               <Shield className="h-3 w-3" />
-              Data stays on device
+              Profile stays on this device
             </span>
           </div>
         </motion.div>
