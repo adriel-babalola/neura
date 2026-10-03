@@ -64,7 +64,7 @@ export function LessonLoader({ childName }: { childName: string }) {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-canvas px-6"
+      className="fixed inset-0 z-100 flex flex-col items-center justify-center bg-canvas px-6"
     >
       <ChalkSpinner />
 

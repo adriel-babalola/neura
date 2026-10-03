@@ -55,7 +55,7 @@ async function callOnce(
       { role: "user", content: buildUserPrompt(req) },
     ],
     temperature: 0.85,
-    max_tokens: 3000,
+    max_tokens: 2000,
   };
   if (useJsonHint) body.response_format = { type: "json_object" };
 
